@@ -15,8 +15,8 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "MNR Group-IT",
-        short_name: "MNR Group-IT",
+        name: "MNR-IT App",
+        short_name: "MNR-IT App",
         description: "My mobile-like MNR Group-IT App",
         theme_color: "#007bff",
         background_color: "#ffffff",
