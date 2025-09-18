@@ -1,7 +1,7 @@
 {
-  "name": "MNR-Group-IT-Management-System",
-  "short_name": "MNR-Group-IT-Management-System",
-  "description": "MNR-Group-IT-Management-System",
+  "name": "MNR-Group-IT",
+  "short_name": "MNR Group-IT",
+  "description": "MNR-Group-IT",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
