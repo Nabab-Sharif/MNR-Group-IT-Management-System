@@ -22,7 +22,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-gradient-to-r from-sky-600 to-blue-700 border-b border-sky-500 sticky top-0 z-50 shadow-lg">
+    <nav className="bg-gradient-to-r from-sky-600 to-sky-300 border-b border-sky-500 sticky top-0 z-50 shadow-lg">
       <div className="px-4 sm:px-6 lg:px-6">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
