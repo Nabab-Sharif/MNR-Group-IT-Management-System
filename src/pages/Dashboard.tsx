@@ -25,6 +25,7 @@ const glassGrid =
 const glassBg =
   "bg-gradient-to-br from-blue-200 via-sky-100 to-purple-200 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-screen";
 
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedUnit, setSelectedUnit] = useState(null);
@@ -94,7 +95,7 @@ const Dashboard = () => {
               MNR Group IT Management System
             </h1>
             <p className="text-lg text-sky-900/70 dark:text-sky-100/70 mt-2 font-medium">
-              Welcome to the <span className="font-bold text-sky-600">Smart 3D Dashboard</span>
+              Welcome to the <span className="font-bold text-sky-600">MNR Sweaters Ltd.</span>
             </p>
           </div>
           <div className="flex items-center space-x-2 text-sky-600 bg-white/40 px-4 py-2 rounded-xl shadow-lg backdrop-blur-md">
@@ -114,11 +115,10 @@ const Dashboard = () => {
               <Users className="h-7 w-7 opacity-80 drop-shadow" />
             </CardHeader>
             <CardContent className="z-10 relative">
-              <div className="text-4xl font-extrabold drop-shadow-lg animate-float">{stats.totalUsers}</div>
+              <div className="text-4xl font-extrabold drop-shadow-lg animate-float">{stats.totalAssets}</div>
               <p className="text-xs opacity-80 mt-1 font-medium">Active employees</p>
             </CardContent>
           </div>
-
           <div className={`${glassCard} group cursor-pointer`} onClick={() => navigate('/departments')}>
             <div className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-600 opacity-30 rounded-full blur-xl group-hover:opacity-60 transition" />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 z-10 relative">
@@ -192,7 +192,7 @@ const Dashboard = () => {
                       <div className="text-xs text-muted-foreground">Departments</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-emerald-600">{unit.total_users}</div>
+                      <div className="text-2xl font-bold text-emerald-600">{unit.total_assets}</div>
                       <div className="text-xs text-muted-foreground">Users</div>
                     </div>
                     <div>
