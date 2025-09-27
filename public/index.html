@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Tracking</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Product Tracking System (LocalStorage)</h1>
+
+    <div class="container">
+        <div id="user-management" class="card">
+            <h2>User Management</h2>
+            <input type="text" id="user-id-input" placeholder="User ID (e.g., user1)">
+            <input type="text" id="user-name-input" placeholder="User Name">
+            <button id="create-user-btn">Create/Select User</button>
+            <div id="total-users" style="margin: 10px 0; font-weight: bold;"></div>
+            <div id="existing-users-container">
+                <h3>Existing Users</h3>
+                <ul id="existing-users-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="user-profile" class="card" style="display:none;">
+            <h2>User Profile: <span id="current-user-id"></span></h2>
+            <img id="profile-pic" src="placeholder.png" alt="Profile Picture" width="150" height="150">
+            <video id="camera-view" width="320" height="240" autoplay style="display:none;"></video>
+            <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+            <br>
+            <button id="start-camera-btn">Open Camera</button>
+            <button id="switch-camera-btn" style="display:none;">Switch Camera</button>
+            <button id="capture-btn" style="display:none;">Capture Photo</button>
+            <input type="file" id="upload-pic" accept="image/*">
+            
+            <h3>Product Totals</h3>
+            <ul id="product-totals"></ul>
+        </div>
+
+        <div id="product-tracking" class="card" style="display:none;">
+            <h2>Product Transactions</h2>
+            <div>
+                <input type="text" id="product-name" placeholder="Product Name">
+                <input type="text" id="transfer-user-id" placeholder="Transfer to User ID (optional)">
+                <button id="add-product-btn">Add/Transfer Product</button>
+            </div>
+            <button id="print-btn">Print Details</button>
+            <ul id="transaction-list">
+                <!-- Transactions will be listed here -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- The Modal -->
+    <div id="details-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Transaction Details</h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

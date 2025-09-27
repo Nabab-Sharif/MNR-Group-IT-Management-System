@@ -17,6 +17,14 @@ import {
 } from "lucide-react";
 import dbService from "@/services/dbService";
 
+// Add custom 3D and glassmorphism styles
+const glassCard =
+  "relative bg-white/20 backdrop-blur-lg border border-white/30 shadow-2xl rounded-2xl transition-transform duration-300 transform hover:scale-105 hover:-rotate-2 hover:shadow-3xl hover:z-10 before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/60 before:to-white/10 before:opacity-70 before:pointer-events-none";
+const glassGrid =
+  "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8";
+const glassBg =
+  "bg-gradient-to-br from-blue-200 via-sky-100 to-purple-200 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-screen";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedUnit, setSelectedUnit] = useState(null);
@@ -73,105 +81,109 @@ const Dashboard = () => {
   // Main Dashboard View
   if (!selectedUnit && !selectedDepartment) {
     return (
-      <div className="p-6 space-y-6 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 min-h-screen">
+      <div className={`p-6 space-y-10 ${glassBg} relative overflow-hidden`}>
+        {/* Animated Gradient Background */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-gradient-to-br from-sky-400 via-blue-400 to-purple-400 opacity-30 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-gradient-to-tr from-pink-400 via-purple-400 to-sky-400 opacity-20 rounded-full blur-2xl animate-pulse" />
+        </div>
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between relative z-10">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-sky-600 via-blue-600 to-purple-600 bg-clip-text text-transparent drop-shadow-lg">
               MNR Group IT Management System
             </h1>
-            <p className="text-lg text-muted-foreground mt-2">
-              Welcome to the comprehensive IT infrastructure dashboard
+            <p className="text-lg text-sky-900/70 dark:text-sky-100/70 mt-2 font-medium">
+              Welcome to the <span className="font-bold text-sky-600">Smart 3D Dashboard</span>
             </p>
           </div>
-          <div className="flex items-center space-x-2 text-sky-600">
+          <div className="flex items-center space-x-2 text-sky-600 bg-white/40 px-4 py-2 rounded-xl shadow-lg backdrop-blur-md">
             <Calendar className="h-5 w-5" />
-            <span className="text-sm font-medium">
+            <span className="text-sm font-semibold">
               {new Date().toLocaleDateString()}
             </span>
           </div>
         </div>
 
         {/* Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card 
-            className="bg-gradient-to-br from-sky-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
-            onClick={() => navigate('/profile')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Total Users</CardTitle>
-              <Users className="h-5 w-5 opacity-80" />
+        <div className={glassGrid}>
+          <div className={`${glassCard} group cursor-pointer`} onClick={() => navigate('/profile')}>
+            <div className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-sky-400 to-blue-600 opacity-30 rounded-full blur-xl group-hover:opacity-60 transition" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 z-10 relative">
+              <CardTitle className="text-sm font-semibold opacity-90 drop-shadow">Total Users</CardTitle>
+              <Users className="h-7 w-7 opacity-80 drop-shadow" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.totalUsers}</div>
-              <p className="text-xs opacity-80 mt-1">Active employees</p>
+            <CardContent className="z-10 relative">
+              <div className="text-4xl font-extrabold drop-shadow-lg animate-float">{stats.totalUsers}</div>
+              <p className="text-xs opacity-80 mt-1 font-medium">Active employees</p>
             </CardContent>
-          </Card>
+          </div>
 
-          <Card 
-            className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
-            onClick={() => navigate('/departments')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Departments</CardTitle>
-              <Building2 className="h-5 w-5 opacity-80" />
+          <div className={`${glassCard} group cursor-pointer`} onClick={() => navigate('/departments')}>
+            <div className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-600 opacity-30 rounded-full blur-xl group-hover:opacity-60 transition" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 z-10 relative">
+              <CardTitle className="text-sm font-semibold opacity-90 drop-shadow">Departments</CardTitle>
+              <Building2 className="h-7 w-7 opacity-80 drop-shadow" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.totalDepartments}</div>
-              <p className="text-xs opacity-80 mt-1">Active departments</p>
+            <CardContent className="z-10 relative">
+              <div className="text-4xl font-extrabold drop-shadow-lg animate-float">{stats.totalDepartments}</div>
+              <p className="text-xs opacity-80 mt-1 font-medium">Active departments</p>
             </CardContent>
-          </Card>
+          </div>
 
-          <Card 
-            className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
-            onClick={() => navigate('/accessories')}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">IT Assets</CardTitle>
-              <Monitor className="h-5 w-5 opacity-80" />
+          <div className={`${glassCard} group cursor-pointer`} onClick={() => navigate('/accessories')}>
+            <div className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-purple-400 to-indigo-600 opacity-30 rounded-full blur-xl group-hover:opacity-60 transition" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 z-10 relative">
+              <CardTitle className="text-sm font-semibold opacity-90 drop-shadow">IT Assets</CardTitle>
+              <Monitor className="h-7 w-7 opacity-80 drop-shadow" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.totalAssets}</div>
-              <p className="text-xs opacity-80 mt-1">Tracked devices</p>
+            <CardContent className="z-10 relative">
+              <div className="text-4xl font-extrabold drop-shadow-lg animate-float">{stats.totalAssets}</div>
+              <p className="text-xs opacity-80 mt-1 font-medium">Tracked devices</p>
             </CardContent>
-          </Card>
+          </div>
 
-          <Card className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer ${
+          <div className={`${glassCard} group cursor-pointer ${
             stats.expiredAntivirus > 0 
-              ? 'bg-gradient-to-br from-red-500 to-pink-600 text-white' 
-              : 'bg-gradient-to-br from-green-500 to-emerald-600 text-white'
+              ? 'border-red-400 shadow-red-200'
+              : 'border-green-400 shadow-green-200'
           }`}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Antivirus Status</CardTitle>
-              <AlertTriangle className="h-5 w-5 opacity-80" />
+            <div className={`absolute -top-4 -right-4 w-16 h-16 rounded-full blur-xl group-hover:opacity-60 transition ${
+              stats.expiredAntivirus > 0
+                ? 'bg-gradient-to-br from-red-400 to-pink-600 opacity-40'
+                : 'bg-gradient-to-br from-green-400 to-emerald-600 opacity-30'
+            }`} />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 z-10 relative">
+              <CardTitle className="text-sm font-semibold opacity-90 drop-shadow">Antivirus Status</CardTitle>
+              <AlertTriangle className="h-7 w-7 opacity-80 drop-shadow" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.expiredAntivirus}</div>
-              <p className="text-xs opacity-80 mt-1">
+            <CardContent className="z-10 relative">
+              <div className="text-4xl font-extrabold drop-shadow-lg animate-float">{stats.expiredAntivirus}</div>
+              <p className="text-xs opacity-80 mt-1 font-medium">
                 {stats.expiredAntivirus > 0 ? 'Expired licenses' : 'All up to date'}
               </p>
             </CardContent>
-          </Card>
+          </div>
         </div>
 
         {/* Unit/Office Cards */}
         <div>
-          <h2 className="text-2xl font-bold mb-4 text-sky-800 dark:text-sky-200">Units & Offices</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <h2 className="text-3xl font-extrabold mb-4 text-sky-800 dark:text-sky-200 drop-shadow">Units & Offices</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {stats.unitStats.map((unit) => (
-              <Card 
+              <div 
                 key={unit.id} 
-                className="cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-105 bg-white/80 backdrop-blur-sm border-sky-200 hover:border-sky-400"
+                className={`${glassCard} group cursor-pointer hover:scale-105 hover:-rotate-1`}
                 onClick={() => handleUnitClick(unit)}
+                style={{ perspective: 1000 }}
               >
+                <div className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-sky-400 to-blue-600 opacity-30 rounded-full blur-xl group-hover:opacity-60 transition" />
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-sky-700">
-                    <MapPin className="h-5 w-5" />
+                  <CardTitle className="flex items-center space-x-2 text-sky-700 text-xl font-bold drop-shadow">
+                    <MapPin className="h-6 w-6" />
                     <span>{unit.name}</span>
                   </CardTitle>
-                  <CardDescription className="text-sky-600">
-                    {unit.location}
-                  </CardDescription>
+                  <CardDescription className="text-sky-600 font-semibold">{unit.location}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4 text-center">
@@ -189,46 +201,46 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
 
         {/* Quick Actions */}
-        <Card className="bg-white/80 backdrop-blur-sm border-sky-200">
+        <div className={`${glassCard} mt-10`}>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-sky-700">
+            <CardTitle className="flex items-center space-x-2 text-sky-700 text-xl font-bold drop-shadow">
               <TrendingUp className="h-5 w-5" />
               <span>Quick Actions</span>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="font-medium">
               Frequently used management tasks
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Button 
-              className="justify-start bg-sky-500 hover:bg-sky-600 text-white" 
+              className="justify-start bg-sky-500 hover:bg-sky-600 text-white shadow-lg"
               onClick={() => navigate('/accessories')}
             >
               <Monitor className="mr-2 h-4 w-4" />
               Manage IT Assets
             </Button>
             <Button 
-              className="justify-start bg-emerald-500 hover:bg-emerald-600 text-white"
+              className="justify-start bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg"
               onClick={() => navigate('/departments')}
             >
               <Building2 className="mr-2 h-4 w-4" />
               Manage Departments
             </Button>
             <Button 
-              className="justify-start bg-purple-500 hover:bg-purple-600 text-white"
+              className="justify-start bg-purple-500 hover:bg-purple-600 text-white shadow-lg"
               onClick={() => navigate('/profile')}
             >
               <Users className="mr-2 h-4 w-4" />
               User Profiles
             </Button>
           </CardContent>
-        </Card>
+        </div>
       </div>
     );
   }
