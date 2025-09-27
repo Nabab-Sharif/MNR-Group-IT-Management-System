@@ -712,7 +712,7 @@ const Accessories = () => {
               </div>
               
               <div>
-                <Label htmlFor="purchase_date">Purchase Date</Label>
+                <Label htmlFor="purchase_date">Issue Date</Label>
                 <Input
                   id="purchase_date"
                   type="date"
@@ -796,7 +796,6 @@ const Accessories = () => {
                     <p><strong>PC No:</strong> {selectedAsset.pc_no}</p>
                     <p><strong>SL No:</strong> {selectedAsset.sl_no}</p>
                     <p><strong>Specification:</strong> {selectedAsset.specification}</p>
-                    <p><strong>IP Address:</strong> {selectedAsset.ip_no}</p>
                     <p><strong>Windows Version:</strong> {selectedAsset.windows_version}</p>
                   </div>
                 </div>
@@ -806,6 +805,7 @@ const Accessories = () => {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Remote Access</Label>
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                    <p><strong>IP Address:</strong> {selectedAsset.ip_no}</p>
                     <p><strong>UltraViewer ID:</strong> {selectedAsset.ultraview_id}</p>
                     <p><strong>AnyDesk ID:</strong> {selectedAsset.anydesk_id}</p>
                   </div>
@@ -816,7 +816,7 @@ const Accessories = () => {
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg">
                     <p><strong>Antivirus Code:</strong> {selectedAsset.antivirus_code}</p>
                     <p><strong>Antivirus Validity:</strong> {selectedAsset.antivirus_validity}</p>
-                    <p><strong>Boot Partition:</strong> {selectedAsset.boot_partition}</p>
+                    <p><strong>Windows Boot Partition:</strong> {selectedAsset.boot_partition}</p>
                   </div>
                 </div>
                 
@@ -826,7 +826,7 @@ const Accessories = () => {
                     <p><strong>Printer:</strong> {selectedAsset.printer}</p>
                     <p><strong>Scanner:</strong> {selectedAsset.scanner}</p>
                     <p><strong>Peripherals:</strong> {selectedAsset.peripherals}</p>
-                    <p><strong>Purchase Date:</strong> {selectedAsset.purchase_date}</p>
+                    <p><strong>Issue Date:</strong> {selectedAsset.purchase_date}</p>
                     <p><strong>Remarks:</strong> {selectedAsset.remarks}</p>
                   </div>
                 </div>

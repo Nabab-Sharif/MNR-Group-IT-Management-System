@@ -10,30 +10,27 @@ class DBService {
     if (!localStorage.getItem('mnr_users')) {
       localStorage.setItem('mnr_users', JSON.stringify([]));
     }
+    // Departments Add Here
     if (!localStorage.getItem('mnr_departments')) {
       localStorage.setItem('mnr_departments', JSON.stringify([
-        { id: 1, name: 'Management', unit: 'Unit-02', created_at: new Date().toISOString() },
-        { id: 2, name: 'Merchandiser', unit: 'Unit-02', created_at: new Date().toISOString() },
-        { id: 3, name: 'IT', unit: 'Unit-02', created_at: new Date().toISOString() },
-        { id: 4, name: 'Accounts', unit: 'Unit-02', created_at: new Date().toISOString() },
-        { id: 5, name: 'HR,Admin & Compliance', unit: 'Unit-02', created_at: new Date().toISOString() },
-        { id: 6, name: 'Production', unit: 'Unit-02', created_at: new Date().toISOString() },
-        { id: 7, name: 'Quality', unit: 'Unit-02', created_at: new Date().toISOString() },
-        { id: 8, name: 'Store', unit: 'Unit-02', created_at: new Date().toISOString() },
+
       ]));
     }
+
     if (!localStorage.getItem('mnr_accessories')) {
       localStorage.setItem('mnr_accessories', JSON.stringify([]));
     }
     if (!localStorage.getItem('mnr_it_assets')) {
       localStorage.setItem('mnr_it_assets', JSON.stringify([]));
     }
+    // Units and Office Add Here
     if (!localStorage.getItem('mnr_units')) {
       localStorage.setItem('mnr_units', JSON.stringify([
-        { id: 1, name: 'Unit-02', location: 'Main Office', created_at: new Date().toISOString() },
-        { id: 2, name: 'Unit-01', location: 'Secondary Office', created_at: new Date().toISOString() },
+        // { id: 1, name: 'Unit-02', location: 'Main Office', created_at: new Date().toISOString() },
+        // { id: 2, name: 'Unit-01', location: 'Secondary Office', created_at: new Date().toISOString() },
       ]));
     }
+
     if (!localStorage.getItem('mnr_products')) {
       localStorage.setItem('mnr_products', JSON.stringify([]));
     }
@@ -172,12 +169,12 @@ class DBService {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    
+
     // Auto-create department if it doesn't exist
     if (asset.division && asset.unit_office) {
       this.autoCreateDepartment(asset.division, asset.unit_office);
     }
-    
+
     assets.push(newAsset);
     localStorage.setItem('mnr_it_assets', JSON.stringify(assets));
     return newAsset;
@@ -210,7 +207,7 @@ class DBService {
     const users = this.getUsers();
     const assets = this.getITAssets();
     const today = new Date();
-    
+
     // Check both users and IT assets for expired antivirus
     const expiredUsers = users.filter(user => {
       if (user.antivirus_expiry) {
@@ -235,11 +232,11 @@ class DBService {
     const users = this.getUsers();
     const departments = this.getDepartments();
     const assets = this.getITAssets();
-    
+
     return departments.map(dept => {
       const deptUsers = users.filter(user => user.department_id === dept.id.toString());
       const deptAssets = assets.filter(asset => asset.division === dept.name);
-      
+
       const expiredAntivirus = deptUsers.filter(user => {
         if (user.antivirus_expiry) {
           const expiryDate = new Date(user.antivirus_expiry);
@@ -247,7 +244,7 @@ class DBService {
         }
         return false;
       });
-      
+
       const expiredAssets = deptAssets.filter(asset => {
         if (asset.antivirus_validity) {
           const expiryDate = new Date(asset.antivirus_validity);
@@ -255,7 +252,7 @@ class DBService {
         }
         return false;
       });
-      
+
       return {
         ...dept,
         total_users: deptUsers.length,
@@ -320,12 +317,12 @@ class DBService {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    
+
     // Auto-create department if it doesn't exist
     if (product.department && product.unit) {
       this.autoCreateDepartment(product.department, product.unit);
     }
-    
+
     products.push(newProduct);
     localStorage.setItem('mnr_products', JSON.stringify(products));
     return newProduct;
@@ -361,7 +358,7 @@ class DBService {
     // Apply text search
     if (query) {
       const searchTerm = query.toLowerCase();
-      filtered = filtered.filter(product => 
+      filtered = filtered.filter(product =>
         product.name?.toLowerCase().includes(searchTerm) ||
         product.category?.toLowerCase().includes(searchTerm) ||
         product.brand?.toLowerCase().includes(searchTerm) ||
@@ -409,7 +406,7 @@ class DBService {
     const users = this.getUsers();
     const assets = this.getITAssets();
     const products = this.getProducts();
-    
+
     return units.map(unit => {
       const unitDepartments = departments.filter(dept => dept.unit === unit.name);
       const unitUsers = users.filter(user => {
@@ -421,7 +418,7 @@ class DBService {
         return assetDept && assetDept.unit === unit.name;
       });
       const unitProducts = products.filter(product => product.unit === unit.name);
-      
+
       return {
         ...unit,
         total_departments: unitDepartments.length,
@@ -431,7 +428,7 @@ class DBService {
         departments: unitDepartments.map(dept => {
           const deptUsers = users.filter(user => user.department_id === dept.id.toString());
           const deptAssets = assets.filter(asset => asset.division === dept.name);
-          
+
           const expiredAntivirus = deptUsers.filter(user => {
             if (user.antivirus_expiry) {
               const expiryDate = new Date(user.antivirus_expiry);
@@ -439,7 +436,7 @@ class DBService {
             }
             return false;
           });
-          
+
           const expiredAssets = deptAssets.filter(asset => {
             if (asset.antivirus_validity) {
               const expiryDate = new Date(asset.antivirus_validity);
@@ -447,7 +444,7 @@ class DBService {
             }
             return false;
           });
-          
+
           return {
             ...dept,
             total_users: deptUsers.length,
@@ -467,10 +464,10 @@ class DBService {
   // Auto-create department if it doesn't exist
   autoCreateDepartment(departmentName, unitName) {
     const departments = this.getDepartments();
-    const existingDept = departments.find(dept => 
+    const existingDept = departments.find(dept =>
       dept.name === departmentName && dept.unit === unitName
     );
-    
+
     if (!existingDept) {
       const newDepartment = {
         id: Date.now(),
@@ -492,12 +489,12 @@ class DBService {
       case 'desktops':
         return assets.filter(asset => asset.device_type === 'desktop');
       case 'in_repair':
-        return assets.filter(asset => asset.remarks?.toLowerCase().includes('repair') || 
-                                   asset.remarks?.toLowerCase().includes('faulty'));
+        return assets.filter(asset => asset.remarks?.toLowerCase().includes('repair') ||
+          asset.remarks?.toLowerCase().includes('faulty'));
       case 'active':
-        return assets.filter(asset => !asset.remarks?.toLowerCase().includes('repair') && 
-                                    !asset.remarks?.toLowerCase().includes('faulty') &&
-                                    !asset.remarks?.toLowerCase().includes('inactive'));
+        return assets.filter(asset => !asset.remarks?.toLowerCase().includes('repair') &&
+          !asset.remarks?.toLowerCase().includes('faulty') &&
+          !asset.remarks?.toLowerCase().includes('inactive'));
       case 'expired_antivirus':
         return this.getExpiredAntivirusUsers().assets;
       default:
@@ -548,7 +545,7 @@ class DBService {
     const activities = JSON.parse(localStorage.getItem('mnr_user_activities') || '[]');
     const today = new Date().toLocaleDateString();
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString();
-    
+
     return {
       today: activities.filter(activity => activity.date === today),
       tomorrow: activities.filter(activity => activity.date === tomorrow),
@@ -559,7 +556,7 @@ class DBService {
   getUserStats(userId) {
     const activities = this.getUserActivities(userId);
     const accessories = this.getAccessories().filter(acc => acc.user_id === userId);
-    
+
     const stats = {
       mouse: activities.filter(a => a.type === 'mouse').length,
       keyboard: activities.filter(a => a.type === 'keyboard').length,
@@ -570,7 +567,7 @@ class DBService {
       total_accessories: accessories.length,
       total_activities: activities.length
     };
-    
+
     return stats;
   }
 

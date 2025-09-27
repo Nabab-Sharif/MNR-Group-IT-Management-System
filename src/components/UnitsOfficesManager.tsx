@@ -246,7 +246,7 @@ const UnitsOfficesManager = ({
                     <div className="text-xs text-muted-foreground">Departments</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-emerald-600">{unit.total_users}</div>
+                    <div className="text-2xl font-bold text-emerald-600">{unit.total_assets}</div>
                     <div className="text-xs text-muted-foreground">Users</div>
                   </div>
                   <div>
@@ -427,7 +427,7 @@ const UnitsOfficesManager = ({
               {selectedDepartment.name} - Users
             </h2>
             <p className="text-muted-foreground">
-              {selectedDepartment.total_users} users • {selectedDepartment.total_assets} assets
+              {selectedDepartment.total_assets} users • {selectedDepartment.total_assets} assets
             </p>
           </div>
         </div>
