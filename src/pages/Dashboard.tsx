@@ -19,7 +19,7 @@ import dbService from "@/services/dbService";
 
 // Add custom 3D and glassmorphism styles
 const glassCard =
-  "relative bg-white/20 backdrop-blur-lg border border-white/30 shadow-2xl rounded-2xl transition-transform duration-300 transform hover:scale-105 hover:-rotate-2 hover:shadow-3xl hover:z-10 before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/60 before:to-white/10 before:opacity-70 before:pointer-events-none";
+  "relative bg-white/20 backdrop-blur-lg border border-white/30 shadow-2xl rounded-2xl transition-transform duration-300 transform hover:shadow-3xl hover:z-10 before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/60 before:to-white/10 before:opacity-70 before:pointer-events-none";
 const glassGrid =
   "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8";
 const glassBg =
