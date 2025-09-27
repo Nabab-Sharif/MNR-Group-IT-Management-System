@@ -221,8 +221,8 @@ const UnitsOfficesManager = ({
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1" onClick={() => onUnitClick(unit)}>
-                    <CardTitle className="flex items-center space-x-2 text-sky-700">
                       <MapPin className="h-5 w-5" />
+                    <CardTitle className="flex items-center space-x-2 text-sky-700">
                       <span>{unit.name}</span>
                     </CardTitle>
                     <CardDescription className="text-sky-600">
@@ -385,10 +385,11 @@ const UnitsOfficesManager = ({
                     </div>
                   </div>
                 </CardHeader>
+                {/* Department User List Here */}
                 <CardContent onClick={() => onDepartmentClick(deptStats)}>
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-emerald-600">{deptStats?.total_users || 0}</div>
+                      <div className="text-2xl font-bold text-emerald-600">{deptStats?.total_assets || 0}</div>
                       <div className="text-xs text-muted-foreground">Users</div>
                     </div>
                     <div>
