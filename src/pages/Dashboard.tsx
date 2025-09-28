@@ -119,7 +119,8 @@ const Dashboard = () => {
               <p className="text-xs opacity-80 mt-1 font-medium">Active employees</p>
             </CardContent>
           </div>
-          <div className={`${glassCard} group cursor-pointer`} onClick={() => navigate('/departments')}>
+
+          {/* <div className={`${glassCard} group cursor-pointer`} onClick={() => navigate('/departments')}>
             <div className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-600 opacity-30 rounded-full blur-xl group-hover:opacity-60 transition" />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 z-10 relative">
               <CardTitle className="text-sm font-semibold opacity-90 drop-shadow">Departments</CardTitle>
@@ -129,7 +130,7 @@ const Dashboard = () => {
               <div className="text-4xl font-extrabold drop-shadow-lg animate-float">{stats.totalDepartments}</div>
               <p className="text-xs opacity-80 mt-1 font-medium">Active departments</p>
             </CardContent>
-          </div>
+          </div> */}
 
           <div className={`${glassCard} group cursor-pointer`} onClick={() => navigate('/accessories')}>
             <div className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-purple-400 to-indigo-600 opacity-30 rounded-full blur-xl group-hover:opacity-60 transition" />
