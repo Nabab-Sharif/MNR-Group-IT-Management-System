@@ -1,11 +1,13 @@
 {
   "name": "MNR-Group-IT",
-  "short_name": "MNR Group-IT",
-  "description": "MNR-Group-IT",
-  "start_url": "/index.html",
+  "short_name": "MNR IT",
+  "description": "MNR-Group-IT Application",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icons/icon-192x192.png",
