@@ -778,7 +778,7 @@ const Accessories = () => {
         </DialogContent>
       </Dialog>
 
-     
+
       {/* Asset Details View Dialog */}
       <Dialog open={viewDetailsDialog} onOpenChange={setViewDetailsDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -799,25 +799,32 @@ const Accessories = () => {
                     Employee Information
                   </Label>
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
-                    {["employee_name", "designation", "email", "mobile", "division", "unit_office"].map(field => (
-                      <p key={field}>
-                        <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
-                        <span
-                          onClick={() => copyText(selectedAsset[field])}
-                          className={`relative px-1 rounded cursor-pointer transition ${copiedText === selectedAsset[field]
-                              ? "bg-green-100 text-green-700"
-                              : "hover:bg-sky-100"
-                            }`}
-                        >
-                          {selectedAsset[field]}
-                          {copiedText === selectedAsset[field] && (
-                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded shadow-md animate-fade">
-                              Copied!
-                            </span>
-                          )}
-                        </span>
-                      </p>
-                    ))}
+                    {["employee_name", "designation", "email", "mobile", "division", "unit_office"].map(field => {
+                      const value = selectedAsset[field];
+                      return (
+                        <p key={field}>
+                          <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                          <span
+                            onClick={() => {
+                              if (value) {
+                                copyText(value);
+                                setCopiedText(value);
+                                setTimeout(() => setCopiedText(null), 2000);
+                              }
+                            }}
+                            className={`relative px-1 rounded cursor-pointer transition ${copiedText === value ? "bg-green-100 text-green-700" : "hover:bg-sky-50"
+                              }`}
+                          >
+                            {value || "N/A"}
+                            {value && copiedText === value && (
+                              <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-green-600 text-white px-3 py-1 rounded-md shadow-md animate-fade-in-out z-50">
+                                ✅ Copied Successfully!
+                              </span>
+                            )}
+                          </span>
+                        </p>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -825,25 +832,32 @@ const Accessories = () => {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Device Information</Label>
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
-                    {["device_type", "pc_no", "sl_no", "specification", "windows_version"].map(field => (
-                      <p key={field}>
-                        <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
-                        <span
-                          onClick={() => copyText(selectedAsset[field])}
-                          className={`relative px-1 rounded cursor-pointer transition ${copiedText === selectedAsset[field]
-                              ? "bg-green-100 text-green-700"
-                              : "hover:bg-sky-100"
-                            }`}
-                        >
-                          {selectedAsset[field]}
-                          {copiedText === selectedAsset[field] && (
-                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded shadow-md animate-fade">
-                              Copied!
-                            </span>
-                          )}
-                        </span>
-                      </p>
-                    ))}
+                    {["device_type", "pc_no", "sl_no", "specification", "windows_version"].map(field => {
+                      const value = selectedAsset[field];
+                      return (
+                        <p key={field}>
+                          <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                          <span
+                            onClick={() => {
+                              if (value) {
+                                copyText(value);
+                                setCopiedText(value);
+                                setTimeout(() => setCopiedText(null), 2000);
+                              }
+                            }}
+                            className={`relative px-1 rounded cursor-pointer transition ${copiedText === value ? "bg-green-100 text-green-700" : "hover:bg-sky-50"
+                              }`}
+                          >
+                            {value || "N/A"}
+                            {value && copiedText === value && (
+                              <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-green-600 text-white px-3 py-1 rounded-md shadow-md animate-fade-in-out z-50">
+                                ✅ Copied Successfully!
+                              </span>
+                            )}
+                          </span>
+                        </p>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -854,25 +868,32 @@ const Accessories = () => {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Remote Access</Label>
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
-                    {["ip_no", "ultraview_id", "anydesk_id"].map(field => (
-                      <p key={field}>
-                        <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
-                        <span
-                          onClick={() => copyText(selectedAsset[field])}
-                          className={`relative px-1 rounded cursor-pointer transition ${copiedText === selectedAsset[field]
-                              ? "bg-green-100 text-green-700"
-                              : "hover:bg-sky-100"
-                            }`}
-                        >
-                          {selectedAsset[field]}
-                          {copiedText === selectedAsset[field] && (
-                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded shadow-md animate-fade">
-                              Copied!
-                            </span>
-                          )}
-                        </span>
-                      </p>
-                    ))}
+                    {["ip_no", "ultraview_id", "anydesk_id"].map(field => {
+                      const value = selectedAsset[field];
+                      return (
+                        <p key={field}>
+                          <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                          <span
+                            onClick={() => {
+                              if (value) {
+                                copyText(value);
+                                setCopiedText(value);
+                                setTimeout(() => setCopiedText(null), 2000);
+                              }
+                            }}
+                            className={`relative px-1 rounded cursor-pointer transition ${copiedText === value ? "bg-green-100 text-green-700" : "hover:bg-sky-50"
+                              }`}
+                          >
+                            {value || "N/A"}
+                            {value && copiedText === value && (
+                              <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-green-600 text-white px-3 py-1 rounded-md shadow-md animate-fade-in-out z-50">
+                                ✅ Copied Successfully!
+                              </span>
+                            )}
+                          </span>
+                        </p>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -880,25 +901,32 @@ const Accessories = () => {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Security & Software</Label>
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
-                    {["antivirus_code", "antivirus_validity", "boot_partition"].map(field => (
-                      <p key={field}>
-                        <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
-                        <span
-                          onClick={() => copyText(selectedAsset[field])}
-                          className={`relative px-1 rounded cursor-pointer transition ${copiedText === selectedAsset[field]
-                              ? "bg-green-100 text-green-700"
-                              : "hover:bg-sky-100"
-                            }`}
-                        >
-                          {selectedAsset[field]}
-                          {copiedText === selectedAsset[field] && (
-                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded shadow-md animate-fade">
-                              Copied!
-                            </span>
-                          )}
-                        </span>
-                      </p>
-                    ))}
+                    {["antivirus_code", "antivirus_validity", "boot_partition"].map(field => {
+                      const value = selectedAsset[field];
+                      return (
+                        <p key={field}>
+                          <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                          <span
+                            onClick={() => {
+                              if (value) {
+                                copyText(value);
+                                setCopiedText(value);
+                                setTimeout(() => setCopiedText(null), 2000);
+                              }
+                            }}
+                            className={`relative px-1 rounded cursor-pointer transition ${copiedText === value ? "bg-green-100 text-green-700" : "hover:bg-sky-50"
+                              }`}
+                          >
+                            {value || "N/A"}
+                            {value && copiedText === value && (
+                              <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-green-600 text-white px-3 py-1 rounded-md shadow-md animate-fade-in-out z-50">
+                                ✅ Copied Successfully!
+                              </span>
+                            )}
+                          </span>
+                        </p>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -906,25 +934,32 @@ const Accessories = () => {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Peripherals & Others</Label>
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
-                    {["printer", "scanner", "peripherals", "purchase_date", "remarks"].map(field => (
-                      <p key={field}>
-                        <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
-                        <span
-                          onClick={() => copyText(selectedAsset[field])}
-                          className={`relative px-1 rounded cursor-pointer transition ${copiedText === selectedAsset[field]
-                              ? "bg-green-100 text-green-700"
-                              : "hover:bg-sky-100"
-                            }`}
-                        >
-                          {selectedAsset[field]}
-                          {copiedText === selectedAsset[field] && (
-                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded shadow-md animate-fade">
-                              Copied!
-                            </span>
-                          )}
-                        </span>
-                      </p>
-                    ))}
+                    {["outlook email", "password", "peripherals", "issue_date", "remarks"].map(field => {
+                      const value = selectedAsset[field];
+                      return (
+                        <p key={field}>
+                          <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                          <span
+                            onClick={() => {
+                              if (value) {
+                                copyText(value);
+                                setCopiedText(value);
+                                setTimeout(() => setCopiedText(null), 2000);
+                              }
+                            }}
+                            className={`relative px-1 rounded cursor-pointer transition ${copiedText === value ? "bg-green-100 text-green-700" : "hover:bg-sky-50"
+                              }`}
+                          >
+                            {value || "N/A"}
+                            {value && copiedText === value && (
+                              <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-green-600 text-white px-3 py-1 rounded-md shadow-md animate-fade-in-out z-50">
+                                ✅ Copied Successfully!
+                              </span>
+                            )}
+                          </span>
+                        </p>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -932,9 +967,6 @@ const Accessories = () => {
           )}
         </DialogContent>
       </Dialog>
-
-
-
 
     </div>
   );
