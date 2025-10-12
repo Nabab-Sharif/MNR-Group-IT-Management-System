@@ -9,10 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  Plus,
+  Edit,
+  Trash2,
   Monitor,
   Smartphone,
   Search,
@@ -58,7 +58,7 @@ const Accessories = () => {
   const [editingAccessory, setEditingAccessory] = useState(null);
   const [viewDetailsDialog, setViewDetailsDialog] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     unit: "",
     division: "",
@@ -98,14 +98,14 @@ const Accessories = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Find the selected unit's ID
     const selectedUnit = units.find(unit => unit.name === formData.unit_office);
     const dataToSubmit = {
       ...formData,
       unit_id: selectedUnit?.id || 1
     };
-    
+
     if (editingAccessory) {
       dbService.updateITAsset(editingAccessory.id, dataToSubmit);
       toast({
@@ -119,7 +119,7 @@ const Accessories = () => {
         description: "New IT Asset has been added successfully.",
       });
     }
-    
+
     loadData();
     resetForm();
     setIsDialogOpen(false);
@@ -173,12 +173,12 @@ const Accessories = () => {
 
   const getFilteredAccessories = () => {
     let filtered = accessories;
-    
+
     // Apply category filter first
     if (filterCategory !== "all") {
       filtered = dbService.getFilteredAssetsByCategory(filterCategory);
     }
-    
+
     // Then apply search and department filters
     return filtered.filter((accessory) => {
       const matchesSearch = Object.values(accessory).some(value =>
@@ -255,6 +255,19 @@ const Accessories = () => {
     setSelectedAsset(asset);
     setViewDetailsDialog(true);
   };
+
+  const [copiedText, setCopiedText] = useState("");
+
+  const copyText = (text) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedText(text);
+
+    // 1.5 will be revert
+    setTimeout(() => setCopiedText(""), 1500);
+  };
+
+
 
   return (
     <div className="mx-auto p-6 space-y-8">
@@ -467,7 +480,7 @@ const Accessories = () => {
                   Employee Information
                 </h3>
               </div>
-              
+
               <div>
                 <Label htmlFor="employee_name">Employee Name *</Label>
                 <Input
@@ -478,7 +491,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="designation">Designation *</Label>
                 <Input
@@ -489,7 +502,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -500,7 +513,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="mobile">Mobile</Label>
                 <Input
@@ -510,7 +523,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="division">Department/Division *</Label>
                 <Input
@@ -521,7 +534,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="unit_office">Unit/Office *</Label>
                 <Select value={formData.unit_office} onValueChange={(value) => setFormData({ ...formData, unit_office: value })}>
@@ -543,7 +556,7 @@ const Accessories = () => {
                   Device Information
                 </h3>
               </div>
-              
+
               <div>
                 <Label htmlFor="device_type">Device Type *</Label>
                 <Select value={formData.device_type} onValueChange={(value) => setFormData({ ...formData, device_type: value })}>
@@ -557,7 +570,7 @@ const Accessories = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label htmlFor="pc_no">PC Number *</Label>
                 <Input
@@ -568,7 +581,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="sl_no">Serial Number</Label>
                 <Input
@@ -578,7 +591,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="ip_no">IP Address</Label>
                 <Input
@@ -589,7 +602,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="windows_version">Windows Version</Label>
                 <Select value={formData.windows_version} onValueChange={(value) => setFormData({ ...formData, windows_version: value })}>
@@ -603,7 +616,7 @@ const Accessories = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="md:col-span-2 lg:col-span-3">
                 <Label htmlFor="specification">Specification</Label>
                 <Textarea
@@ -622,7 +635,7 @@ const Accessories = () => {
                   Remote Access
                 </h3>
               </div>
-              
+
               <div>
                 <Label htmlFor="ultraview_id">UltraViewer ID</Label>
                 <Input
@@ -632,7 +645,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="anydesk_id">AnyDesk ID</Label>
                 <Input
@@ -650,7 +663,7 @@ const Accessories = () => {
                   Security & Software
                 </h3>
               </div>
-              
+
               <div>
                 <Label htmlFor="antivirus_code">Antivirus Code</Label>
                 <Input
@@ -660,7 +673,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="antivirus_validity">Antivirus Validity</Label>
                 <Input
@@ -671,7 +684,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="boot_partition">Boot Partition</Label>
                 <Input
@@ -690,9 +703,9 @@ const Accessories = () => {
                   Peripherals & Others
                 </h3>
               </div>
-              
+
               <div>
-                <Label htmlFor="printer">Printer</Label>
+                <Label htmlFor="printer">Outlook Email</Label>
                 <Input
                   id="printer"
                   value={formData.printer}
@@ -700,9 +713,9 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
               <div>
-                <Label htmlFor="scanner">Scanner</Label>
+                <Label htmlFor="scanner">Password</Label>
                 <Input
                   id="scanner"
                   value={formData.scanner}
@@ -710,7 +723,18 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
+
+              <div className="md:col-span-2 lg:col-span-3">
+                <Label htmlFor="peripherals">Add Peripherals</Label>
+                <Textarea
+                  id="peripherals"
+                  value={formData.peripherals}
+                  onChange={(e) => setFormData({ ...formData, peripherals: e.target.value })}
+                  placeholder="Mouse, keyboard, headset, etc."
+                  className="border-sky-200 focus:border-sky-400"
+                />
+              </div>
+
               <div>
                 <Label htmlFor="purchase_date">Issue Date</Label>
                 <Input
@@ -721,18 +745,7 @@ const Accessories = () => {
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
-              
-              <div className="md:col-span-2 lg:col-span-3">
-                <Label htmlFor="peripherals">Other Peripherals</Label>
-                <Textarea
-                  id="peripherals"
-                  value={formData.peripherals}
-                  onChange={(e) => setFormData({ ...formData, peripherals: e.target.value })}
-                  placeholder="Mouse, keyboard, headset, etc."
-                  className="border-sky-200 focus:border-sky-400"
-                />
-              </div>
-              
+
               <div className="md:col-span-2 lg:col-span-3">
                 <Label htmlFor="remarks">Remarks</Label>
                 <Textarea
@@ -744,17 +757,17 @@ const Accessories = () => {
                 />
               </div>
             </div>
-            
+
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setIsDialogOpen(false)}
                 className="border-gray-300"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 type="submit"
                 className="bg-sky-600 hover:bg-sky-700 text-white"
               >
@@ -765,6 +778,7 @@ const Accessories = () => {
         </DialogContent>
       </Dialog>
 
+     
       {/* Asset Details View Dialog */}
       <Dialog open={viewDetailsDialog} onOpenChange={setViewDetailsDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -774,60 +788,143 @@ const Accessories = () => {
               Complete information about the selected IT asset
             </DialogDescription>
           </DialogHeader>
+
           {selectedAsset && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* ==== LEFT SIDE ==== */}
               <div className="space-y-4">
+                {/* Employee Info */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">Employee Information</Label>
-                  <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                    <p><strong>Name:</strong> {selectedAsset.employee_name}</p>
-                    <p><strong>Designation:</strong> {selectedAsset.designation}</p>
-                    <p><strong>Email:</strong> {selectedAsset.email}</p>
-                    <p><strong>Mobile:</strong> {selectedAsset.mobile}</p>
-                    <p><strong>Department:</strong> {selectedAsset.division}</p>
-                    <p><strong>Unit/Office:</strong> {selectedAsset.unit_office}</p>
+                  <Label className="text-sm font-medium text-gray-700">
+                    Employee Information
+                  </Label>
+                  <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
+                    {["employee_name", "designation", "email", "mobile", "division", "unit_office"].map(field => (
+                      <p key={field}>
+                        <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                        <span
+                          onClick={() => copyText(selectedAsset[field])}
+                          className={`relative px-1 rounded cursor-pointer transition ${copiedText === selectedAsset[field]
+                              ? "bg-green-100 text-green-700"
+                              : "hover:bg-sky-100"
+                            }`}
+                        >
+                          {selectedAsset[field]}
+                          {copiedText === selectedAsset[field] && (
+                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded shadow-md animate-fade">
+                              Copied!
+                            </span>
+                          )}
+                        </span>
+                      </p>
+                    ))}
                   </div>
                 </div>
-                
+
+                {/* Device Info */}
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Device Information</Label>
-                  <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                    <p><strong>Device Type:</strong> {selectedAsset.device_type}</p>
-                    <p><strong>PC No:</strong> {selectedAsset.pc_no}</p>
-                    <p><strong>SL No:</strong> {selectedAsset.sl_no}</p>
-                    <p><strong>Specification:</strong> {selectedAsset.specification}</p>
-                    <p><strong>Windows Version:</strong> {selectedAsset.windows_version}</p>
+                  <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
+                    {["device_type", "pc_no", "sl_no", "specification", "windows_version"].map(field => (
+                      <p key={field}>
+                        <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                        <span
+                          onClick={() => copyText(selectedAsset[field])}
+                          className={`relative px-1 rounded cursor-pointer transition ${copiedText === selectedAsset[field]
+                              ? "bg-green-100 text-green-700"
+                              : "hover:bg-sky-100"
+                            }`}
+                        >
+                          {selectedAsset[field]}
+                          {copiedText === selectedAsset[field] && (
+                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded shadow-md animate-fade">
+                              Copied!
+                            </span>
+                          )}
+                        </span>
+                      </p>
+                    ))}
                   </div>
                 </div>
               </div>
-              
+
+              {/* ==== RIGHT SIDE ==== */}
               <div className="space-y-4">
+                {/* Remote Access */}
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Remote Access</Label>
-                  <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                    <p><strong>IP Address:</strong> {selectedAsset.ip_no}</p>
-                    <p><strong>UltraViewer ID:</strong> {selectedAsset.ultraview_id}</p>
-                    <p><strong>AnyDesk ID:</strong> {selectedAsset.anydesk_id}</p>
+                  <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
+                    {["ip_no", "ultraview_id", "anydesk_id"].map(field => (
+                      <p key={field}>
+                        <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                        <span
+                          onClick={() => copyText(selectedAsset[field])}
+                          className={`relative px-1 rounded cursor-pointer transition ${copiedText === selectedAsset[field]
+                              ? "bg-green-100 text-green-700"
+                              : "hover:bg-sky-100"
+                            }`}
+                        >
+                          {selectedAsset[field]}
+                          {copiedText === selectedAsset[field] && (
+                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded shadow-md animate-fade">
+                              Copied!
+                            </span>
+                          )}
+                        </span>
+                      </p>
+                    ))}
                   </div>
                 </div>
-                
+
+                {/* Security & Software */}
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Security & Software</Label>
-                  <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                    <p><strong>Antivirus Code:</strong> {selectedAsset.antivirus_code}</p>
-                    <p><strong>Antivirus Validity:</strong> {selectedAsset.antivirus_validity}</p>
-                    <p><strong>Windows Boot Partition:</strong> {selectedAsset.boot_partition}</p>
+                  <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
+                    {["antivirus_code", "antivirus_validity", "boot_partition"].map(field => (
+                      <p key={field}>
+                        <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                        <span
+                          onClick={() => copyText(selectedAsset[field])}
+                          className={`relative px-1 rounded cursor-pointer transition ${copiedText === selectedAsset[field]
+                              ? "bg-green-100 text-green-700"
+                              : "hover:bg-sky-100"
+                            }`}
+                        >
+                          {selectedAsset[field]}
+                          {copiedText === selectedAsset[field] && (
+                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded shadow-md animate-fade">
+                              Copied!
+                            </span>
+                          )}
+                        </span>
+                      </p>
+                    ))}
                   </div>
                 </div>
-                
+
+                {/* Peripherals */}
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Peripherals & Others</Label>
-                  <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                    <p><strong>Printer:</strong> {selectedAsset.printer}</p>
-                    <p><strong>Scanner:</strong> {selectedAsset.scanner}</p>
-                    <p><strong>Peripherals:</strong> {selectedAsset.peripherals}</p>
-                    <p><strong>Issue Date:</strong> {selectedAsset.purchase_date}</p>
-                    <p><strong>Remarks:</strong> {selectedAsset.remarks}</p>
+                  <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
+                    {["printer", "scanner", "peripherals", "purchase_date", "remarks"].map(field => (
+                      <p key={field}>
+                        <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                        <span
+                          onClick={() => copyText(selectedAsset[field])}
+                          className={`relative px-1 rounded cursor-pointer transition ${copiedText === selectedAsset[field]
+                              ? "bg-green-100 text-green-700"
+                              : "hover:bg-sky-100"
+                            }`}
+                        >
+                          {selectedAsset[field]}
+                          {copiedText === selectedAsset[field] && (
+                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-2 py-1 rounded shadow-md animate-fade">
+                              Copied!
+                            </span>
+                          )}
+                        </span>
+                      </p>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -835,6 +932,10 @@ const Accessories = () => {
           )}
         </DialogContent>
       </Dialog>
+
+
+
+
     </div>
   );
 };
