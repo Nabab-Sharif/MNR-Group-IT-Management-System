@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Users, 
-  Building2, 
-  Shield, 
+import {
+  Users,
+  Building2,
+  Shield,
   AlertTriangle,
   Monitor,
   TrendingUp,
@@ -144,16 +144,14 @@ const Dashboard = () => {
             </CardContent>
           </div>
 
-          <div className={`${glassCard} group cursor-pointer ${
-            stats.expiredAntivirus > 0 
-              ? 'border-red-400 shadow-red-200'
-              : 'border-green-400 shadow-green-200'
-          }`}>
-            <div className={`absolute -top-4 -right-4 w-16 h-16 rounded-full blur-xl group-hover:opacity-60 transition ${
-              stats.expiredAntivirus > 0
-                ? 'bg-gradient-to-br from-red-400 to-pink-600 opacity-40'
-                : 'bg-gradient-to-br from-green-400 to-emerald-600 opacity-30'
-            }`} />
+          <div className={`${glassCard} group cursor-pointer ${stats.expiredAntivirus > 0
+            ? 'border-red-400 shadow-red-200'
+            : 'border-green-400 shadow-green-200'
+            }`}>
+            <div className={`absolute -top-4 -right-4 w-16 h-16 rounded-full blur-xl group-hover:opacity-60 transition ${stats.expiredAntivirus > 0
+              ? 'bg-gradient-to-br from-red-400 to-pink-600 opacity-40'
+              : 'bg-gradient-to-br from-green-400 to-emerald-600 opacity-30'
+              }`} />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 z-10 relative">
               <CardTitle className="text-sm font-semibold opacity-90 drop-shadow">Antivirus Status</CardTitle>
               <AlertTriangle className="h-7 w-7 opacity-80 drop-shadow" />
@@ -172,8 +170,8 @@ const Dashboard = () => {
           <h2 className="text-3xl font-extrabold mb-4 text-sky-800 dark:text-sky-200 drop-shadow">Units & Offices</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {stats.unitStats.map((unit) => (
-              <div 
-                key={unit.id} 
+              <div
+                key={unit.id}
                 className={`${glassCard} group cursor-pointer hover:scale-105 hover:-rotate-1`}
                 onClick={() => handleUnitClick(unit)}
                 style={{ perspective: 1000 }}
@@ -219,21 +217,21 @@ const Dashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button 
+            <Button
               className="justify-start bg-sky-500 hover:bg-sky-600 text-white shadow-lg"
               onClick={() => navigate('/accessories')}
             >
               <Monitor className="mr-2 h-4 w-4" />
               Manage IT Assets
             </Button>
-            <Button 
+            <Button
               className="justify-start bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg"
               onClick={() => navigate('/departments')}
             >
               <Building2 className="mr-2 h-4 w-4" />
               Manage Departments
             </Button>
-            <Button 
+            <Button
               className="justify-start bg-purple-500 hover:bg-purple-600 text-white shadow-lg"
               onClick={() => navigate('/profile')}
             >
@@ -252,8 +250,8 @@ const Dashboard = () => {
       <div className="p-6 space-y-6 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 min-h-screen">
         <div className="flex items-center justify-between">
           <div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleBackToUnits}
               className="mb-4 border-sky-200 text-sky-700 hover:bg-sky-50"
             >
@@ -270,8 +268,8 @@ const Dashboard = () => {
           {selectedUnit.departments.map((department) => {
             const deptStats = stats.departmentStats.find(d => d.id === department.id);
             return (
-              <Card 
-                key={department.id} 
+              <Card
+                key={department.id}
                 className="cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-105 bg-white/80 backdrop-blur-sm border-sky-200 hover:border-sky-400"
                 onClick={() => handleDepartmentClick(deptStats)}
               >
@@ -312,8 +310,8 @@ const Dashboard = () => {
       <div className="p-6 space-y-6 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 min-h-screen">
         <div className="flex items-center justify-between">
           <div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleBackToDepartments}
               className="mb-4 border-sky-200 text-sky-700 hover:bg-sky-50"
             >
@@ -331,8 +329,8 @@ const Dashboard = () => {
         {/* Users Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {selectedDepartment.users.map((user) => (
-            <Card 
-              key={user.id} 
+            <Card
+              key={user.id}
               className="bg-white/80 backdrop-blur-sm border-sky-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105"
             >
               <CardHeader>
@@ -370,8 +368,8 @@ const Dashboard = () => {
           <h2 className="text-2xl font-bold mb-4 text-sky-800 dark:text-sky-200">IT Assets</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {selectedDepartment.assets.map((asset) => (
-              <Card 
-                key={asset.id} 
+              <Card
+                key={asset.id}
                 className="bg-white/80 backdrop-blur-sm border-sky-200 hover:shadow-xl transition-all duration-300"
               >
                 <CardHeader>
@@ -388,12 +386,30 @@ const Dashboard = () => {
                       {asset.device_type?.toUpperCase()}
                     </Badge>
                   </div>
+
                   {asset.ip_no && (
                     <div className="flex items-center space-x-2">
-                      <Network className="h-4 w-4" />
-                      <span>{asset.ip_no}</span>
+                      <Network className="h-4 w-4 text-sky-600" />
+
+                      <a
+                        href={`tightvnc://${asset.ip_no}`}
+                        className="text-sky-700 font-semibold hover:underline cursor-pointer"
+                        onClick={() => {
+                          try {
+                            navigator.clipboard.writeText(asset.ip_no);
+                          } catch (e) {
+                            console.log('Clipboard copy failed:', e);
+                          }
+                        }}
+                      >
+                        {asset.ip_no}
+                      </a>
+
                     </div>
                   )}
+
+
+
                   {asset.ultraview_id && (
                     <div className="flex items-center space-x-2">
                       <Eye className="h-4 w-4" />
