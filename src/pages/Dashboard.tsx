@@ -390,20 +390,22 @@ const Dashboard = () => {
                   {asset.ip_no && (
                     <div className="flex items-center space-x-2">
                       <Network className="h-4 w-4 text-sky-600" />
-
-                      <a
-                        href={`tightvnc://${asset.ip_no}`}
-                        className="text-sky-700 font-semibold hover:underline cursor-pointer"
-                        onClick={() => {
-                          try {
-                            navigator.clipboard.writeText(asset.ip_no);
-                          } catch (e) {
-                            console.log('Clipboard copy failed:', e);
-                          }
-                        }}
-                      >
-                        {asset.ip_no}
-                      </a>
+                     
+                      <span>IP: <span> </span>
+                        <a
+                          href={`tightvnc://${asset.ip_no}`}
+                          className="text-sky-700 font-semibold hover:underline cursor-pointer"
+                          onClick={() => {
+                            try {
+                              navigator.clipboard.writeText(asset.ip_no);
+                            } catch (e) {
+                              console.log('Clipboard copy failed:', e);
+                            }
+                          }}
+                        >
+                          {asset.ip_no}
+                        </a>
+                      </span>
 
                     </div>
                   )}
