@@ -17,14 +17,59 @@ import {
 } from "lucide-react";
 import dbService from "@/services/dbService";
 
-// Add custom 3D and glassmorphism styles
-const glassCard =
-  "relative bg-white/20 backdrop-blur-lg border border-white/30 shadow-2xl rounded-2xl transition-transform duration-300 transform hover:shadow-3xl hover:z-10 before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/60 before:to-white/10 before:opacity-70 before:pointer-events-none";
-const glassGrid =
-  "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8";
-const glassBg =
-  "bg-gradient-to-br from-blue-200 via-sky-100 to-purple-200 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-screen";
+// Enhanced style constants
+const glassCard = `
+  relative overflow-hidden
+  bg-gradient-to-br from-white/10 to-white/5
+  backdrop-blur-xl
+  border border-white/20
+  shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]
+  rounded-2xl
+  transition-all duration-500 ease-out
+  group
+  hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.6)]
+  hover:border-white/40
+  hover:-translate-y-1
+  hover:scale-[1.02]
+`;
 
+const glassGrid = `
+  grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4
+  gap-8 px-4
+  animate-[fadeIn_0.5s_ease-out]
+`;
+const glassBg = `
+  min-h-screen
+  bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))]
+  from-blue-100 via-violet-200 to-teal-100
+  dark:from-slate-900 dark:via-slate-800 dark:to-slate-900
+  overflow-hidden
+  relative
+`;
+
+// Add these animation styles
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  @keyframes glow {
+    0%, 100% { opacity: 0.8; filter: brightness(1); }
+    50% { opacity: 1; filter: brightness(1.2); }
+  }
+`;
+document.head.appendChild(style);
+
+const footerStyle = `
+  fixed bottom-0 left-0 right-0
+  py-4 px-8
+  bg-gradient-to-r from-gray-900/90 via-gray-800/90 to-gray-900/90
+  backdrop-blur-xl
+  border-t border-white/10
+  shadow-[0_-8px_32px_0_rgba(31,38,135,0.37)]
+`;
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -39,6 +84,7 @@ const Dashboard = () => {
     departmentStats: []
   });
 
+  // Load dashboard data
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -82,28 +128,11 @@ const Dashboard = () => {
   // Main Dashboard View
   if (!selectedUnit && !selectedDepartment) {
     return (
-      <div className={`p-6 space-y-10 ${glassBg} relative overflow-hidden`}>
-        {/* Animated Gradient Background */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-gradient-to-br from-sky-400 via-blue-400 to-purple-400 opacity-30 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-gradient-to-tr from-pink-400 via-purple-400 to-sky-400 opacity-20 rounded-full blur-2xl animate-pulse" />
-        </div>
-        {/* Header */}
-        <div className="flex items-center justify-between relative z-10">
-          <div>
-            <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-sky-600 via-blue-600 to-purple-600 bg-clip-text text-transparent drop-shadow-lg">
-              MNR Group IT Management System
-            </h1>
-            <p className="text-lg text-sky-900/70 dark:text-sky-100/70 mt-2 font-medium">
-              Welcome to the <span className="font-bold text-sky-600">MNR Sweaters Ltd.</span>
-            </p>
-          </div>
-          <div className="flex items-center space-x-2 text-sky-600 bg-white/40 px-4 py-2 rounded-xl shadow-lg backdrop-blur-md">
-            <Calendar className="h-5 w-5" />
-            <span className="text-sm font-semibold">
-              {new Date().toLocaleDateString()}
-            </span>
-          </div>
+      <div className={`${glassBg} p-6 pb-20 relative overflow-hidden`}>
+        {/* Animated Background - keep this for all views */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 -left-32 w-[800px] h-[800px] bg-gradient-to-br from-blue-400/30 via-purple-400/30 to-pink-400/30 rounded-full blur-3xl animate-[glow_8s_ease-in-out_infinite]" />
+          <div className="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-gradient-to-bl from-teal-400/30 via-cyan-400/30 to-blue-400/30 rounded-full blur-3xl animate-[glow_12s_ease-in-out_infinite]" />
         </div>
 
         {/* Overview Stats */}
@@ -240,28 +269,50 @@ const Dashboard = () => {
             </Button>
           </CardContent>
         </div>
+        {/* Footer */}
+        <footer className="fixed bottom-0 left-0 right-0 
+      py-6 px-8 
+      bg-gradient-to-r from-gray-900/90 via-gray-800/90 to-gray-900/90 
+      backdrop-blur-xl
+      border-t border-white/10
+      shadow-[0_-8px_32px_0_rgba(31,38,135,0.37)]">
+          <div className="flex items-center justify-center space-x-4">
+            <div className="h-0.5 w-24 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full animate-pulse" />
+            <p className="text-sm font-medium text-white/90">
+              Created with ❤️ by{" "}
+              <span className="font-bold bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent">
+                IT Team, MNR Sweaters Ltd.
+              </span>
+            </p>
+            <div className="h-0.5 w-24 bg-gradient-to-r from-teal-500 to-blue-500 rounded-full animate-pulse" />
+          </div>
+        </footer>
       </div>
     );
   }
 
-  // Department View
+  // Department View - Update to match main view styling
   if (selectedUnit && !selectedDepartment) {
     return (
-      <div className="p-6 space-y-6 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 min-h-screen">
-        <div className="flex items-center justify-between">
-          <div>
-            <Button
-              variant="outline"
-              onClick={handleBackToUnits}
-              className="mb-4 border-sky-200 text-sky-700 hover:bg-sky-50"
-            >
-              ← Back to Units
-            </Button>
-            <h1 className="text-3xl font-bold text-sky-800 dark:text-sky-200">
-              {selectedUnit.name} - Departments
-            </h1>
-            <p className="text-muted-foreground">{selectedUnit.location}</p>
-          </div>
+      <div className={`${glassBg} p-6 pb-20 relative overflow-hidden`}>
+        {/* Add same animated background as main view */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 -left-32 w-[800px] h-[800px] bg-gradient-to-br from-blue-400/30 via-purple-400/30 to-pink-400/30 rounded-full blur-3xl animate-[glow_8s_ease-in-out_infinite]" />
+          <div className="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-gradient-to-bl from-teal-400/30 via-cyan-400/30 to-blue-400/30 rounded-full blur-3xl animate-[glow_12s_ease-in-out_infinite]" />
+        </div>
+
+        <div className="relative z-10">
+          <Button
+            variant="outline"
+            onClick={handleBackToUnits}
+            className="mb-4 bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            ← Back to Units
+          </Button>
+          <h1 className="text-3xl font-bold text-sky-800 dark:text-sky-200">
+            {selectedUnit.name} - Departments
+          </h1>
+          <p className="text-muted-foreground">{selectedUnit.location}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -300,30 +351,47 @@ const Dashboard = () => {
             );
           })}
         </div>
+        {/* Footer */}
+        <footer className={footerStyle}>
+          <div className="flex items-center justify-center space-x-2">
+            <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full" />
+            <p className="text-sm font-medium">
+              Created with ❤️ by{" "}
+              <span className="font-bold bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent">
+                IT Team, MNR Sweaters Ltd.
+              </span>
+            </p>
+            <div className="h-1 w-16 bg-gradient-to-r from-teal-500 to-blue-500 rounded-full" />
+          </div>
+        </footer>
       </div>
     );
   }
 
-  // User List View
+  // User List View - Update to match main view styling
   if (selectedDepartment) {
     return (
-      <div className="p-6 space-y-6 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 min-h-screen">
-        <div className="flex items-center justify-between">
-          <div>
-            <Button
-              variant="outline"
-              onClick={handleBackToDepartments}
-              className="mb-4 border-sky-200 text-sky-700 hover:bg-sky-50"
-            >
-              ← Back to Departments
-            </Button>
-            <h1 className="text-3xl font-bold text-sky-800 dark:text-sky-200">
-              {selectedDepartment.name} - Users
-            </h1>
-            <p className="text-muted-foreground">
-              {selectedDepartment.total_users} users • {selectedDepartment.total_assets} assets
-            </p>
-          </div>
+      <div className={`${glassBg} p-6 pb-20 relative overflow-hidden`}>
+        {/* Add same animated background as main view */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 -left-32 w-[800px] h-[800px] bg-gradient-to-br from-blue-400/30 via-purple-400/30 to-pink-400/30 rounded-full blur-3xl animate-[glow_8s_ease-in-out_infinite]" />
+          <div className="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-gradient-to-bl from-teal-400/30 via-cyan-400/30 to-blue-400/30 rounded-full blur-3xl animate-[glow_12s_ease-in-out_infinite]" />
+        </div>
+
+        <div className="relative z-10">
+          <Button
+            variant="outline"
+            onClick={handleBackToDepartments}
+            className="mb-4 bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            ← Back to Departments
+          </Button>
+          <h1 className="text-3xl font-bold text-sky-800 dark:text-sky-200">
+            {selectedDepartment.name} - Users
+          </h1>
+          <p className="text-muted-foreground">
+            {selectedDepartment.total_users} users • {selectedDepartment.total_assets} assets
+          </p>
         </div>
 
         {/* Users Grid */}
@@ -437,6 +505,19 @@ const Dashboard = () => {
             ))}
           </div>
         </div>
+        {/* Footer */}
+        <footer className={footerStyle}>
+          <div className="flex items-center justify-center space-x-2">
+            <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full" />
+            <p className="text-sm font-medium">
+              Created with ❤️ by{" "}
+              <span className="font-bold bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent">
+                IT Team, MNR Sweaters Ltd.
+              </span>
+            </p>
+            <div className="h-1 w-16 bg-gradient-to-r from-teal-500 to-blue-500 rounded-full" />
+          </div>
+        </footer>
       </div>
     );
   }
