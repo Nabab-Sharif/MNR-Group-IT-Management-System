@@ -34,9 +34,9 @@ const glassCard = `
 `;
 
 const glassGrid = `
-  grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4
-  gap-8 px-4
-  animate-[fadeIn_0.5s_ease-out]
+  grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3
+  gap-8
+  animate-[fadeIn_0.5s_ease-out] mt-10
 `;
 const glassBg = `
   min-h-screen
@@ -137,7 +137,7 @@ const Dashboard = () => {
 
         {/* Overview Stats */}
         <div className={glassGrid}>
-          <div className={`${glassCard} group cursor-pointer`} onClick={() => navigate('/profile')}>
+          <div className={`${glassCard} group cursor-pointer`} onClick={() => navigate('/accessories')}>
             <div className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-sky-400 to-blue-600 opacity-30 rounded-full blur-xl group-hover:opacity-60 transition" />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 z-10 relative">
               <CardTitle className="text-sm font-semibold opacity-90 drop-shadow">Total Users</CardTitle>
@@ -196,7 +196,7 @@ const Dashboard = () => {
 
         {/* Unit/Office Cards */}
         <div>
-          <h2 className="text-3xl font-extrabold mb-4 text-sky-800 dark:text-sky-200 drop-shadow">Units & Offices</h2>
+          <h2 className="text-3xl font-extrabold text-sky-800 dark:text-sky-200 drop-shadow mt-8 mb-8">Units & Offices</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {stats.unitStats.map((unit) => (
               <div
@@ -235,7 +235,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className={`${glassCard} mt-10`}>
+        <div className={`${glassCard} mt-14`}>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-sky-700 text-xl font-bold drop-shadow">
               <TrendingUp className="h-5 w-5" />
@@ -269,6 +269,7 @@ const Dashboard = () => {
             </Button>
           </CardContent>
         </div>
+       
         {/* Footer */}
         <footer className="fixed bottom-0 left-0 right-0 
       py-6 px-8 
