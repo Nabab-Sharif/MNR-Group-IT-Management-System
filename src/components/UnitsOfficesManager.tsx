@@ -6,42 +6,43 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  Plus,
+  Edit,
+  Trash2,
   Building2,
   Users,
   MapPin,
   Package,
   Monitor,
+  Network,
   Laptop
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import dbService from "@/services/dbService";
 
-const UnitsOfficesManager = ({ 
-  units, 
-  departments, 
-  selectedUnit, 
+const UnitsOfficesManager = ({
+  units,
+  departments,
+  selectedUnit,
   selectedDepartment,
-  onUnitClick, 
-  onDepartmentClick, 
-  onBackToUnits, 
+  onUnitClick,
+  onDepartmentClick,
+  onBackToUnits,
   onBackToDepartments,
-  onDataChange 
+  onDataChange
 }) => {
   const { toast } = useToast();
   const [isUnitDialogOpen, setIsUnitDialogOpen] = useState(false);
   const [isDepartmentDialogOpen, setIsDepartmentDialogOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState(null);
   const [editingDepartment, setEditingDepartment] = useState(null);
-  
+
   const [unitFormData, setUnitFormData] = useState({
     name: "",
     location: ""
   });
-  
+
   const [departmentFormData, setDepartmentFormData] = useState({
     name: "",
     description: "",
@@ -52,7 +53,7 @@ const UnitsOfficesManager = ({
 
   const handleUnitSubmit = (e) => {
     e.preventDefault();
-    
+
     if (editingUnit) {
       const updated = dbService.updateUnit(editingUnit.id, unitFormData);
       if (updated) {
@@ -70,14 +71,14 @@ const UnitsOfficesManager = ({
         });
       }
     }
-    
+
     onDataChange();
     resetUnitForm();
   };
 
   const handleDepartmentSubmit = (e) => {
     e.preventDefault();
-    
+
     if (editingDepartment) {
       const updated = dbService.updateDepartment(editingDepartment.id, departmentFormData);
       if (updated) {
@@ -95,7 +96,7 @@ const UnitsOfficesManager = ({
         });
       }
     }
-    
+
     onDataChange();
     resetDepartmentForm();
   };
@@ -187,7 +188,7 @@ const UnitsOfficesManager = ({
                   <Input
                     id="name"
                     value={unitFormData.name}
-                    onChange={(e) => setUnitFormData({...unitFormData, name: e.target.value})}
+                    onChange={(e) => setUnitFormData({ ...unitFormData, name: e.target.value })}
                     required
                   />
                 </div>
@@ -196,7 +197,7 @@ const UnitsOfficesManager = ({
                   <Input
                     id="location"
                     value={unitFormData.location}
-                    onChange={(e) => setUnitFormData({...unitFormData, location: e.target.value})}
+                    onChange={(e) => setUnitFormData({ ...unitFormData, location: e.target.value })}
                   />
                 </div>
                 <DialogFooter>
@@ -214,14 +215,14 @@ const UnitsOfficesManager = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {units.map((unit) => (
-            <Card 
-              key={unit.id} 
+            <Card
+              key={unit.id}
               className="cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-105 bg-white/80 backdrop-blur-sm border-sky-200 hover:border-sky-400"
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1" onClick={() => onUnitClick(unit)}>
-                      <MapPin className="h-5 w-5" />
+                    <MapPin className="h-5 w-5" />
                     <CardTitle className="flex items-center space-x-2 text-sky-700">
                       <span>{unit.name}</span>
                     </CardTitle>
@@ -230,10 +231,10 @@ const UnitsOfficesManager = ({
                     </CardDescription>
                   </div>
                   <div className="flex space-x-1">
-                    <Button size="sm" variant="outline" onClick={(e) => {e.stopPropagation(); handleEditUnit(unit);}}>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleEditUnit(unit); }}>
                       <Edit className="h-3 w-3" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={(e) => {e.stopPropagation(); handleDeleteUnit(unit);}}>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleDeleteUnit(unit); }}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
@@ -268,8 +269,8 @@ const UnitsOfficesManager = ({
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={onBackToUnits}
               className="mb-4 border-sky-200 text-sky-700 hover:bg-sky-50"
             >
@@ -300,15 +301,15 @@ const UnitsOfficesManager = ({
                   <Input
                     id="name"
                     value={departmentFormData.name}
-                    onChange={(e) => setDepartmentFormData({...departmentFormData, name: e.target.value})}
+                    onChange={(e) => setDepartmentFormData({ ...departmentFormData, name: e.target.value })}
                     required
                   />
                 </div>
                 <div>
                   <Label htmlFor="unit">Unit/Office *</Label>
-                  <Select 
-                    value={departmentFormData.unit || selectedUnit.name} 
-                    onValueChange={(value) => setDepartmentFormData({...departmentFormData, unit: value})}
+                  <Select
+                    value={departmentFormData.unit || selectedUnit.name}
+                    onValueChange={(value) => setDepartmentFormData({ ...departmentFormData, unit: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select unit/office" />
@@ -325,7 +326,7 @@ const UnitsOfficesManager = ({
                   <Input
                     id="description"
                     value={departmentFormData.description}
-                    onChange={(e) => setDepartmentFormData({...departmentFormData, description: e.target.value})}
+                    onChange={(e) => setDepartmentFormData({ ...departmentFormData, description: e.target.value })}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -334,7 +335,7 @@ const UnitsOfficesManager = ({
                     <Input
                       id="head"
                       value={departmentFormData.head}
-                      onChange={(e) => setDepartmentFormData({...departmentFormData, head: e.target.value})}
+                      onChange={(e) => setDepartmentFormData({ ...departmentFormData, head: e.target.value })}
                     />
                   </div>
                   <div>
@@ -342,7 +343,7 @@ const UnitsOfficesManager = ({
                     <Input
                       id="location"
                       value={departmentFormData.location}
-                      onChange={(e) => setDepartmentFormData({...departmentFormData, location: e.target.value})}
+                      onChange={(e) => setDepartmentFormData({ ...departmentFormData, location: e.target.value })}
                     />
                   </div>
                 </div>
@@ -363,8 +364,8 @@ const UnitsOfficesManager = ({
           {selectedUnit.departments.map((department) => {
             const deptStats = departments.find(d => d.id === department.id);
             return (
-              <Card 
-                key={department.id} 
+              <Card
+                key={department.id}
                 className="cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-105 bg-white/80 backdrop-blur-sm border-sky-200 hover:border-sky-400"
               >
                 <CardHeader>
@@ -376,10 +377,10 @@ const UnitsOfficesManager = ({
                       </CardTitle>
                     </div>
                     <div className="flex space-x-1">
-                      <Button size="sm" variant="outline" onClick={(e) => {e.stopPropagation(); handleEditDepartment(department);}}>
+                      <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleEditDepartment(department); }}>
                         <Edit className="h-3 w-3" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={(e) => {e.stopPropagation(); handleDeleteDepartment(department);}}>
+                      <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(department); }}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
@@ -417,8 +418,8 @@ const UnitsOfficesManager = ({
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={onBackToDepartments}
               className="mb-4 border-sky-200 text-sky-700 hover:bg-sky-50"
             >
@@ -436,8 +437,8 @@ const UnitsOfficesManager = ({
         {/* Users Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {selectedDepartment.users.map((user) => (
-            <Card 
-              key={user.id} 
+            <Card
+              key={user.id}
               className="bg-white/80 backdrop-blur-sm border-sky-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105"
             >
               <CardHeader>
@@ -467,8 +468,8 @@ const UnitsOfficesManager = ({
           <h3 className="text-xl font-bold mb-4 text-sky-800 dark:text-sky-200">IT Assets</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {selectedDepartment.assets.map((asset) => (
-              <Card 
-                key={asset.id} 
+              <Card
+                key={asset.id}
                 className="bg-white/80 backdrop-blur-sm border-sky-200 hover:shadow-xl transition-all duration-300"
               >
                 <CardHeader>
@@ -485,12 +486,37 @@ const UnitsOfficesManager = ({
                       {asset.device_type?.toUpperCase()}
                     </Badge>
                   </div>
-                  {asset.ip_no && (
+
+                  {/* {asset.ip_no && (
                     <div className="flex items-center space-x-2">
                       <span className="font-medium">IP:</span>
                       <span>{asset.ip_no}</span>
                     </div>
+                  )} */}
+
+                  {asset.ip_no && (
+                    <div className="flex items-center space-x-2">
+                      <Network className="h-4 w-4 text-sky-600" />
+
+                      <span>IP: <span> </span>
+                        <a
+                          href={`tightvnc://${asset.ip_no}`}
+                          className="text-sky-700 font-semibold hover:underline cursor-pointer"
+                          onClick={() => {
+                            try {
+                              navigator.clipboard.writeText(asset.ip_no);
+                            } catch (e) {
+                              console.log('Clipboard copy failed:', e);
+                            }
+                          }}
+                        >
+                          {asset.ip_no}
+                        </a>
+                      </span>
+
+                    </div>
                   )}
+
                   {asset.ultraview_id && (
                     <div className="flex items-center space-x-2">
                       <span className="font-medium">UltraViewer:</span>
