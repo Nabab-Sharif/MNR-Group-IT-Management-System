@@ -149,9 +149,13 @@ class DBService {
     _saveCacheToLocalStorage() {
         this.storeNames.forEach(store => {
             try {
-                localStorage.setItem(store, JSON.stringify(this.cache[store] || []));
+                const data = this.cache[store] || [];
+
+                // যদি cache খুব বড় হয় (যেমন > 1000 item), শেষের 1000টা রাখবে
+                const limitedData = data.length > 1000 ? data.slice(-1000) : data;
+
+                localStorage.setItem(store, JSON.stringify(limitedData));
             } catch (e) {
-                // ignore quota errors silently
                 console.warn('DBService: localStorage save failed for', store, e);
             }
         });
