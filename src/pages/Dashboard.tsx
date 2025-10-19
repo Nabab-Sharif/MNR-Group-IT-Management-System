@@ -16,6 +16,7 @@ import {
   Eye
 } from "lucide-react";
 import dbService from "@/services/dbService";
+import { AppFooter } from "@/components/layout/AppFooter";
 
 // Enhanced style constants
 const glassCard = `
@@ -61,15 +62,6 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
-
-const footerStyle = `
-  fixed bottom-0 left-0 right-0
-  py-4 px-8
-  bg-gradient-to-r from-gray-900/90 via-gray-800/90 to-gray-900/90
-  backdrop-blur-xl
-  border-t border-white/10
-  shadow-[0_-8px_32px_0_rgba(31,38,135,0.37)]
-`;
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -270,24 +262,7 @@ const Dashboard = () => {
           </CardContent>
         </div>
        
-        {/* Footer */}
-        <footer className="fixed bottom-0 left-0 right-0 
-      py-6 px-8 
-      bg-gradient-to-r from-gray-900/90 via-gray-800/90 to-gray-900/90 
-      backdrop-blur-xl
-      border-t border-white/10
-      shadow-[0_-8px_32px_0_rgba(31,38,135,0.37)]">
-          <div className="flex items-center justify-center space-x-4">
-            <div className="h-0.5 w-24 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full animate-pulse" />
-            <p className="text-sm font-medium text-white/90">
-              Created with ❤️ by{" "}
-              <span className="font-bold bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent">
-                IT Team, MNR Sweaters Ltd.
-              </span>
-            </p>
-            <div className="h-0.5 w-24 bg-gradient-to-r from-teal-500 to-blue-500 rounded-full animate-pulse" />
-          </div>
-        </footer>
+        <AppFooter />
       </div>
     );
   }
@@ -352,19 +327,7 @@ const Dashboard = () => {
             );
           })}
         </div>
-        {/* Footer */}
-        <footer className={footerStyle}>
-          <div className="flex items-center justify-center space-x-2">
-            <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full" />
-            <p className="text-sm font-medium">
-              Created with ❤️ by{" "}
-              <span className="font-bold bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent">
-                IT Team, MNR Sweaters Ltd.
-              </span>
-            </p>
-            <div className="h-1 w-16 bg-gradient-to-r from-teal-500 to-blue-500 rounded-full" />
-          </div>
-        </footer>
+        <AppFooter />
       </div>
     );
   }
@@ -506,19 +469,7 @@ const Dashboard = () => {
             ))}
           </div>
         </div>
-        {/* Footer */}
-        <footer className={footerStyle}>
-          <div className="flex items-center justify-center space-x-2">
-            <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full" />
-            <p className="text-sm font-medium">
-              Created with ❤️ by{" "}
-              <span className="font-bold bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent">
-                IT Team, MNR Sweaters Ltd.
-              </span>
-            </p>
-            <div className="h-1 w-16 bg-gradient-to-r from-teal-500 to-blue-500 rounded-full" />
-          </div>
-        </footer>
+        <AppFooter />
       </div>
     );
   }

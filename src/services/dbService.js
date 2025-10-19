@@ -576,18 +576,30 @@ class DBService {
 
     importData(data) {
         try {
-            if (data.users) { this.cache['mnr_users'] = data.users;
-                this._persistStore('mnr_users'); }
-            if (data.departments) { this.cache['mnr_departments'] = data.departments;
-                this._persistStore('mnr_departments'); }
-            if (data.assets) { this.cache['mnr_it_assets'] = data.assets;
-                this._persistStore('mnr_it_assets'); }
-            if (data.units) { this.cache['mnr_units'] = data.units;
-                this._persistStore('mnr_units'); }
-            if (data.products) { this.cache['mnr_products'] = data.products;
-                this._persistStore('mnr_products'); }
-            if (data.activities) { this.cache['mnr_user_activities'] = data.activities;
-                this._persistStore('mnr_user_activities'); }
+            if (data.users) {
+                this.cache['mnr_users'] = data.users;
+                this._persistStore('mnr_users');
+            }
+            if (data.departments) {
+                this.cache['mnr_departments'] = data.departments;
+                this._persistStore('mnr_departments');
+            }
+            if (data.assets) {
+                this.cache['mnr_it_assets'] = data.assets;
+                this._persistStore('mnr_it_assets');
+            }
+            if (data.units) {
+                this.cache['mnr_units'] = data.units;
+                this._persistStore('mnr_units');
+            }
+            if (data.products) {
+                this.cache['mnr_products'] = data.products;
+                this._persistStore('mnr_products');
+            }
+            if (data.activities) {
+                this.cache['mnr_user_activities'] = data.activities;
+                this._persistStore('mnr_user_activities');
+            }
             return true;
         } catch (error) {
             console.error('Import failed:', error);
