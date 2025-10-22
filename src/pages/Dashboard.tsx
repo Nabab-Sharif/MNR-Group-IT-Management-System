@@ -261,7 +261,7 @@ const Dashboard = () => {
             </Button>
           </CardContent>
         </div>
-       
+
         <AppFooter />
       </div>
     );
@@ -422,40 +422,78 @@ const Dashboard = () => {
                   {asset.ip_no && (
                     <div className="flex items-center space-x-2">
                       <Network className="h-4 w-4 text-sky-600" />
-                     
-                      <span>IP: <span> </span>
+                      <span>
+                        IP:{' '}
                         <a
                           href={`tightvnc://${asset.ip_no}`}
                           className="text-sky-700 font-semibold hover:underline cursor-pointer"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault();
                             try {
+                              // Copy IP
                               navigator.clipboard.writeText(asset.ip_no);
-                            } catch (e) {
-                              console.log('Clipboard copy failed:', e);
+                              // Open TightVNC (via custom protocol)
+                              window.location.href = `tightvnc://${asset.ip_no}`;
+                            } catch (err) {
+                              console.error('Clipboard copy failed:', err);
                             }
                           }}
                         >
                           {asset.ip_no}
                         </a>
                       </span>
-
                     </div>
                   )}
 
-
-
-                  {asset.ultraview_id && (
-                    <div className="flex items-center space-x-2">
-                      <Eye className="h-4 w-4" />
-                      <span>UV: {asset.ultraview_id}</span>
-                    </div>
-                  )}
                   {asset.anydesk_id && (
                     <div className="flex items-center space-x-2">
-                      <Monitor className="h-4 w-4" />
-                      <span>AD: {asset.anydesk_id}</span>
+                      <Monitor className="h-4 w-4 text-sky-600" />
+                      <span>
+                        AD:{' '}
+                        <a
+                          href={`anydesk://${asset.anydesk_id}`}
+                          className="text-sky-700 font-semibold hover:underline cursor-pointer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            try {
+                              navigator.clipboard.writeText(asset.anydesk_id);
+                              window.location.href = `anydesk://${asset.anydesk_id}`;
+                            } catch (err) {
+                              console.error('Clipboard copy failed:', err);
+                            }
+                          }}
+                        >
+                          {asset.anydesk_id}
+                        </a>
+                      </span>
                     </div>
                   )}
+                  
+                  {asset.ultraview_id && (
+                    <div className="flex items-center space-x-2">
+                      <Eye className="h-4 w-4 text-sky-600" />
+                      <span>
+                        UV:{' '}
+                        <a
+                          href={`ultraviewer://${asset.ultraview_id}`}
+                          className="text-sky-700 font-semibold hover:underline cursor-pointer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            try {
+                              navigator.clipboard.writeText(asset.ultraview_id);
+                              window.location.href = `ultraviewer://${asset.ultraview_id}`;
+                            } catch (err) {
+                              console.error('Clipboard copy failed:', err);
+                            }
+                          }}
+                        >
+                          {asset.ultraview_id}
+                        </a>
+                      </span>
+                    </div>
+                  )}
+
+
                   {asset.antivirus_validity && (
                     <div className="flex items-center space-x-2">
                       <Shield className="h-4 w-4" />
