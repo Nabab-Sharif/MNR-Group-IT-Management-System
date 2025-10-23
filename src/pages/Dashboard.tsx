@@ -561,7 +561,7 @@ const Dashboard = () => {
           <div className="space-y-6">
             {/* Users with Expired Antivirus */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Users ({expiredAntivirusData.users.length})</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Users ({expiredAntivirusData.assets.length})</h3>
               <div className="rounded-lg border border-red-200">
                 <Table>
                   <TableHeader>
@@ -569,53 +569,6 @@ const Dashboard = () => {
                       <TableHead className="text-red-700">Name</TableHead>
                       <TableHead className="text-red-700">Department</TableHead>
                       <TableHead className="text-red-700">Device</TableHead>
-                      <TableHead className="text-red-700">Expiry Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {expiredAntivirusData.users.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-4 text-gray-500">
-                          No expired antivirus found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      expiredAntivirusData.users.map((user) => (
-                        <TableRow key={user.id} className="hover:bg-red-50/50">
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{user.employee_name}</div>
-                              <div className="text-sm text-gray-500">{user.designation}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{user.division}</TableCell>
-                          <TableCell>{user.pc_no}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-red-500" />
-                              <span className="text-red-600">
-                                {new Date(user.antivirus_validity).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-
-            {/* Assets with Expired Antivirus */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">IT Assets ({expiredAntivirusData.assets.length})</h3>
-              <div className="rounded-lg border border-red-200">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-red-50">
-                      <TableHead className="text-red-700">Device</TableHead>
-                      <TableHead className="text-red-700">User</TableHead>
-                      <TableHead className="text-red-700">Department</TableHead>
                       <TableHead className="text-red-700">Expiry Date</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -630,18 +583,13 @@ const Dashboard = () => {
                       expiredAntivirusData.assets.map((asset) => (
                         <TableRow key={asset.id} className="hover:bg-red-50/50">
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Monitor className="h-4 w-4 text-gray-500" />
-                              <span>{asset.pc_no}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
                             <div>
                               <div className="font-medium">{asset.employee_name}</div>
                               <div className="text-sm text-gray-500">{asset.designation}</div>
                             </div>
                           </TableCell>
                           <TableCell>{asset.division}</TableCell>
+                          <TableCell>{asset.pc_no}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-red-500" />
@@ -651,12 +599,14 @@ const Dashboard = () => {
                             </div>
                           </TableCell>
                         </TableRow>
-                      )))
-                    }
+                       
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
             </div>
+
           </div>
         </DialogContent>
       </Dialog>
