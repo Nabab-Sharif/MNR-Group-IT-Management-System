@@ -267,6 +267,20 @@ const Accessories = () => {
     setTimeout(() => setCopiedText(""), 1500);
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return dateString || "N/A";
+    }
+  };
+
 
 
   return (
@@ -740,7 +754,7 @@ const Accessories = () => {
                 <Input
                   id="purchase_date"
                   type="date"
-                  value={formData.purchase_date}
+                  value={formData.purchase_date ? new Date(formData.purchase_date).toISOString().split('T')[0] : ''}
                   onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
                   className="border-sky-200 focus:border-sky-400"
                 />
@@ -934,7 +948,39 @@ const Accessories = () => {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Peripherals & Others</Label>
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
-                    {["outlook email", "password", "peripherals", "issue_date", "remarks"].map(field => {
+                    {["outlook email", "password", "peripherals"].map(field => {
+                      const value = selectedAsset[field];
+                      return (
+                        <p key={field}>
+                          <strong>{field.replace("_", " ").toUpperCase()}:</strong>{" "}
+                          <span
+                            onClick={() => {
+                              if (value) {
+                                copyText(value);
+                                setCopiedText(value);
+                                setTimeout(() => setCopiedText(null), 2000);
+                              }
+                            }}
+                            className={`relative px-1 rounded cursor-pointer transition ${copiedText === value ? "bg-green-100 text-green-700" : "hover:bg-sky-50"
+                              }`}
+                          >
+                            {value || "N/A"}
+                            {value && copiedText === value && (
+                              <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-green-600 text-white px-3 py-1 rounded-md shadow-md animate-fade-in-out z-50">
+                                ✅ Copied Successfully!
+                              </span>
+                            )}
+                          </span>
+                        </p>
+                      );
+                    })}
+                    <p>
+                      <strong>ISSUE DATE:</strong>{" "}
+                      <span className="px-1 rounded">
+                        {formatDate(selectedAsset.purchase_date)}
+                      </span>
+                    </p>
+                    {["remarks"].map(field => {
                       const value = selectedAsset[field];
                       return (
                         <p key={field}>

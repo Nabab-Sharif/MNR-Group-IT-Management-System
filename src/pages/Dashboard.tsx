@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +23,21 @@ import {
 } from "lucide-react";
 import dbService from "@/services/dbService";
 import { AppFooter } from "@/components/layout/AppFooter";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 
 // Enhanced style constants
 const glassCard = `
@@ -75,6 +96,8 @@ const Dashboard = () => {
     unitStats: [],
     departmentStats: []
   });
+  const [showAntivirusDetails, setShowAntivirusDetails] = useState(false);
+  const [expiredAntivirusData, setExpiredAntivirusData] = useState({ users: [], assets: [] });
 
   // Load dashboard data
   useEffect(() => {
@@ -117,8 +140,259 @@ const Dashboard = () => {
     setSelectedDepartment(null);
   };
 
-  // Main Dashboard View
-  if (!selectedUnit && !selectedDepartment) {
+  const handleAntivirusClick = () => {
+    const expiredData = dbService.getExpiredAntivirusUsers();
+    setExpiredAntivirusData(expiredData);
+    setShowAntivirusDetails(true);
+  };
+
+  // Main content based on view state
+  const renderContent = () => {
+    if (selectedUnit && !selectedDepartment) {
+      return (
+        <div className={`${glassBg} p-6 pb-20 relative overflow-hidden`}>
+          {/* Add same animated background as main view */}
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-32 -left-32 w-[800px] h-[800px] bg-gradient-to-br from-blue-400/30 via-purple-400/30 to-pink-400/30 rounded-full blur-3xl animate-[glow_8s_ease-in-out_infinite]" />
+            <div className="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-gradient-to-bl from-teal-400/30 via-cyan-400/30 to-blue-400/30 rounded-full blur-3xl animate-[glow_12s_ease-in-out_infinite]" />
+          </div>
+
+          <div className="relative z-10">
+            <Button
+              variant="outline"
+              onClick={handleBackToUnits}
+              className="mb-4 bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              ← Back to Units
+            </Button>
+            <h1 className="text-3xl font-bold text-sky-800 dark:text-sky-200">
+              {selectedUnit.name} - Departments
+            </h1>
+            <p className="text-muted-foreground">{selectedUnit.location}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {selectedUnit.departments.map((department) => {
+              const deptStats = stats.departmentStats.find(d => d.id === department.id);
+              return (
+                <Card
+                  key={department.id}
+                  className="cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-105 bg-white/80 backdrop-blur-sm border-sky-200 hover:border-sky-400"
+                  onClick={() => handleDepartmentClick(deptStats)}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2 text-sky-700">
+                      <Building2 className="h-5 w-5" />
+                      <span>{department.name}</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div>
+                        <div className="text-2xl font-bold text-emerald-600">{deptStats?.total_assets || 0}</div>
+                        <div className="text-xs text-muted-foreground">Users</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-purple-600">{deptStats?.total_assets || 0}</div>
+                        <div className="text-xs text-muted-foreground">Assets</div>
+                      </div>
+                    </div>
+                    {deptStats?.expired_antivirus > 0 && (
+                      <Badge variant="destructive" className="mt-2">
+                        {deptStats.expired_antivirus} Expired Antivirus
+                      </Badge>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          <AppFooter />
+        </div>
+      );
+
+    }
+
+    if (selectedDepartment) {
+      return (
+        <div className={`${glassBg} p-6 pb-20 relative overflow-hidden`}>
+          {/* Add same animated background as main view */}
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-32 -left-32 w-[800px] h-[800px] bg-gradient-to-br from-blue-400/30 via-purple-400/30 to-pink-400/30 rounded-full blur-3xl animate-[glow_8s_ease-in-out_infinite]" />
+            <div className="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-gradient-to-bl from-teal-400/30 via-cyan-400/30 to-blue-400/30 rounded-full blur-3xl animate-[glow_12s_ease-in-out_infinite]" />
+          </div>
+
+          <div className="relative z-10">
+            <Button
+              variant="outline"
+              onClick={handleBackToDepartments}
+              className="mb-4 bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              ← Back to Departments
+            </Button>
+            <h1 className="text-3xl font-bold text-sky-800 dark:text-sky-200">
+              {selectedDepartment.name} - Users
+            </h1>
+            <p className="text-muted-foreground">
+              {selectedDepartment.total_users} users • {selectedDepartment.total_assets} assets
+            </p>
+          </div>
+
+          {/* Users Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {selectedDepartment.users.map((user) => (
+              <Card
+                key={user.id}
+                className="bg-white/80 backdrop-blur-sm border-sky-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                <CardHeader>
+                  <CardTitle className="text-sky-700">{user.name}</CardTitle>
+                  <CardDescription>{user.designation || 'N/A'}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {user.id_number && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <span className="font-medium">ID:</span>
+                      <span>{user.id_number}</span>
+                    </div>
+                  )}
+                  {user.phone && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <span className="font-medium">Phone:</span>
+                      <span>{user.phone}</span>
+                    </div>
+                  )}
+                  {user.antivirus_expiry && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Shield className="h-4 w-4" />
+                      <span className={new Date(user.antivirus_expiry) < new Date() ? 'text-red-600 font-medium' : 'text-green-600'}>
+                        Antivirus: {new Date(user.antivirus_expiry).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Assets Grid */}
+          <div>
+            <h2 className="text-2xl font-bold mb-4 text-sky-800 dark:text-sky-200">IT Assets</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {selectedDepartment.assets.map((asset) => (
+                <Card
+                  key={asset.id}
+                  className="bg-white/80 backdrop-blur-sm border-sky-200 hover:shadow-xl transition-all duration-300"
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2 text-sky-700">
+                      <Monitor className="h-4 w-4" />
+                      <span>{asset.employee_name}</span>
+                    </CardTitle>
+                    <CardDescription>{asset.designation}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Device:</span>
+                      <Badge variant={asset.device_type === 'laptop' ? 'default' : 'secondary'}>
+                        {asset.device_type?.toUpperCase()}
+                      </Badge>
+                    </div>
+
+                    {asset.ip_no && (
+                      <div className="flex items-center space-x-2">
+                        <Network className="h-4 w-4 text-sky-600" />
+                        <span>
+                          IP:{' '}
+                          <a
+                            href={`tightvnc://${asset.ip_no}`}
+                            className="text-sky-700 font-semibold hover:underline cursor-pointer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              try {
+                                // Copy IP
+                                navigator.clipboard.writeText(asset.ip_no);
+                                // Open TightVNC (via custom protocol)
+                                window.location.href = `tightvnc://${asset.ip_no}`;
+                              } catch (err) {
+                                console.error('Clipboard copy failed:', err);
+                              }
+                            }}
+                          >
+                            {asset.ip_no}
+                          </a>
+                        </span>
+                      </div>
+                    )}
+
+                    {asset.anydesk_id && (
+                      <div className="flex items-center space-x-2">
+                        <Monitor className="h-4 w-4 text-sky-600" />
+                        <span>
+                          AD:{' '}
+                          <a
+                            href={`anydesk://${asset.anydesk_id}`}
+                            className="text-sky-700 font-semibold hover:underline cursor-pointer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              try {
+                                navigator.clipboard.writeText(asset.anydesk_id);
+                                window.location.href = `anydesk://${asset.anydesk_id}`;
+                              } catch (err) {
+                                console.error('Clipboard copy failed:', err);
+                              }
+                            }}
+                          >
+                            {asset.anydesk_id}
+                          </a>
+                        </span>
+                      </div>
+                    )}
+                    
+                    {asset.ultraview_id && (
+                      <div className="flex items-center space-x-2">
+                        <Eye className="h-4 w-4 text-sky-600" />
+                        <span>
+                          UV:{' '}
+                          <a
+                            href={`ultraviewer://${asset.ultraview_id}`}
+                            className="text-sky-700 font-semibold hover:underline cursor-pointer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              try {
+                                navigator.clipboard.writeText(asset.ultraview_id);
+                                window.location.href = `ultraviewer://${asset.ultraview_id}`;
+                              } catch (err) {
+                                console.error('Clipboard copy failed:', err);
+                              }
+                            }}
+                          >
+                            {asset.ultraview_id}
+                          </a>
+                        </span>
+                      </div>
+                    )}
+
+
+                    {asset.antivirus_validity && (
+                      <div className="flex items-center space-x-2">
+                        <Shield className="h-4 w-4" />
+                        <span className={new Date(asset.antivirus_validity) < new Date() ? 'text-red-600 font-medium' : 'text-green-600'}>
+                          {new Date(asset.antivirus_validity).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+          <AppFooter />
+        </div>
+      );
+    }
+
+    // Default dashboard view
     return (
       <div className={`${glassBg} p-6 pb-20 relative overflow-hidden`}>
         {/* Animated Background - keep this for all views */}
@@ -168,7 +442,7 @@ const Dashboard = () => {
           <div className={`${glassCard} group cursor-pointer ${stats.expiredAntivirus > 0
             ? 'border-red-400 shadow-red-200'
             : 'border-green-400 shadow-green-200'
-            }`}>
+            }`} onClick={handleAntivirusClick}>
             <div className={`absolute -top-4 -right-4 w-16 h-16 rounded-full blur-xl group-hover:opacity-60 transition ${stats.expiredAntivirus > 0
               ? 'bg-gradient-to-br from-red-400 to-pink-600 opacity-40'
               : 'bg-gradient-to-br from-green-400 to-emerald-600 opacity-30'
@@ -265,252 +539,129 @@ const Dashboard = () => {
         <AppFooter />
       </div>
     );
-  }
+  };
 
-  // Department View - Update to match main view styling
-  if (selectedUnit && !selectedDepartment) {
-    return (
-      <div className={`${glassBg} p-6 pb-20 relative overflow-hidden`}>
-        {/* Add same animated background as main view */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-32 -left-32 w-[800px] h-[800px] bg-gradient-to-br from-blue-400/30 via-purple-400/30 to-pink-400/30 rounded-full blur-3xl animate-[glow_8s_ease-in-out_infinite]" />
-          <div className="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-gradient-to-bl from-teal-400/30 via-cyan-400/30 to-blue-400/30 rounded-full blur-3xl animate-[glow_12s_ease-in-out_infinite]" />
-        </div>
+  // Main return with dialog always present
+  return (
+    <>
+      {renderContent()}
+      
+      <Dialog open={showAntivirusDetails} onOpenChange={setShowAntivirusDetails}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Expired Antivirus Details
+            </DialogTitle>
+            <DialogDescription>
+              List of devices and users with expired antivirus
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="relative z-10">
-          <Button
-            variant="outline"
-            onClick={handleBackToUnits}
-            className="mb-4 bg-white/10 border-white/20 text-white hover:bg-white/20"
-          >
-            ← Back to Units
-          </Button>
-          <h1 className="text-3xl font-bold text-sky-800 dark:text-sky-200">
-            {selectedUnit.name} - Departments
-          </h1>
-          <p className="text-muted-foreground">{selectedUnit.location}</p>
-        </div>
+          <div className="space-y-6">
+            {/* Users with Expired Antivirus */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Users ({expiredAntivirusData.users.length})</h3>
+              <div className="rounded-lg border border-red-200">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-red-50">
+                      <TableHead className="text-red-700">Name</TableHead>
+                      <TableHead className="text-red-700">Department</TableHead>
+                      <TableHead className="text-red-700">Device</TableHead>
+                      <TableHead className="text-red-700">Expiry Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {expiredAntivirusData.users.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-4 text-gray-500">
+                          No expired antivirus found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      expiredAntivirusData.users.map((user) => (
+                        <TableRow key={user.id} className="hover:bg-red-50/50">
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{user.employee_name}</div>
+                              <div className="text-sm text-gray-500">{user.designation}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{user.division}</TableCell>
+                          <TableCell>{user.pc_no}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-red-500" />
+                              <span className="text-red-600">
+                                {new Date(user.antivirus_validity).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {selectedUnit.departments.map((department) => {
-            const deptStats = stats.departmentStats.find(d => d.id === department.id);
-            return (
-              <Card
-                key={department.id}
-                className="cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:scale-105 bg-white/80 backdrop-blur-sm border-sky-200 hover:border-sky-400"
-                onClick={() => handleDepartmentClick(deptStats)}
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-sky-700">
-                    <Building2 className="h-5 w-5" />
-                    <span>{department.name}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-emerald-600">{deptStats?.total_assets || 0}</div>
-                      <div className="text-xs text-muted-foreground">Users</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-purple-600">{deptStats?.total_assets || 0}</div>
-                      <div className="text-xs text-muted-foreground">Assets</div>
-                    </div>
-                  </div>
-                  {deptStats?.expired_antivirus > 0 && (
-                    <Badge variant="destructive" className="mt-2">
-                      {deptStats.expired_antivirus} Expired Antivirus
-                    </Badge>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-        <AppFooter />
-      </div>
-    );
-  }
-
-  // User List View - Update to match main view styling
-  if (selectedDepartment) {
-    return (
-      <div className={`${glassBg} p-6 pb-20 relative overflow-hidden`}>
-        {/* Add same animated background as main view */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-32 -left-32 w-[800px] h-[800px] bg-gradient-to-br from-blue-400/30 via-purple-400/30 to-pink-400/30 rounded-full blur-3xl animate-[glow_8s_ease-in-out_infinite]" />
-          <div className="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-gradient-to-bl from-teal-400/30 via-cyan-400/30 to-blue-400/30 rounded-full blur-3xl animate-[glow_12s_ease-in-out_infinite]" />
-        </div>
-
-        <div className="relative z-10">
-          <Button
-            variant="outline"
-            onClick={handleBackToDepartments}
-            className="mb-4 bg-white/10 border-white/20 text-white hover:bg-white/20"
-          >
-            ← Back to Departments
-          </Button>
-          <h1 className="text-3xl font-bold text-sky-800 dark:text-sky-200">
-            {selectedDepartment.name} - Users
-          </h1>
-          <p className="text-muted-foreground">
-            {selectedDepartment.total_users} users • {selectedDepartment.total_assets} assets
-          </p>
-        </div>
-
-        {/* Users Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {selectedDepartment.users.map((user) => (
-            <Card
-              key={user.id}
-              className="bg-white/80 backdrop-blur-sm border-sky-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-            >
-              <CardHeader>
-                <CardTitle className="text-sky-700">{user.name}</CardTitle>
-                <CardDescription>{user.designation || 'N/A'}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {user.id_number && (
-                  <div className="flex items-center space-x-2 text-sm">
-                    <span className="font-medium">ID:</span>
-                    <span>{user.id_number}</span>
-                  </div>
-                )}
-                {user.phone && (
-                  <div className="flex items-center space-x-2 text-sm">
-                    <span className="font-medium">Phone:</span>
-                    <span>{user.phone}</span>
-                  </div>
-                )}
-                {user.antivirus_expiry && (
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Shield className="h-4 w-4" />
-                    <span className={new Date(user.antivirus_expiry) < new Date() ? 'text-red-600 font-medium' : 'text-green-600'}>
-                      Antivirus: {new Date(user.antivirus_expiry).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Assets Grid */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4 text-sky-800 dark:text-sky-200">IT Assets</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {selectedDepartment.assets.map((asset) => (
-              <Card
-                key={asset.id}
-                className="bg-white/80 backdrop-blur-sm border-sky-200 hover:shadow-xl transition-all duration-300"
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-sky-700">
-                    <Monitor className="h-4 w-4" />
-                    <span>{asset.employee_name}</span>
-                  </CardTitle>
-                  <CardDescription>{asset.designation}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Device:</span>
-                    <Badge variant={asset.device_type === 'laptop' ? 'default' : 'secondary'}>
-                      {asset.device_type?.toUpperCase()}
-                    </Badge>
-                  </div>
-
-                  {asset.ip_no && (
-                    <div className="flex items-center space-x-2">
-                      <Network className="h-4 w-4 text-sky-600" />
-                      <span>
-                        IP:{' '}
-                        <a
-                          href={`tightvnc://${asset.ip_no}`}
-                          className="text-sky-700 font-semibold hover:underline cursor-pointer"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            try {
-                              // Copy IP
-                              navigator.clipboard.writeText(asset.ip_no);
-                              // Open TightVNC (via custom protocol)
-                              window.location.href = `tightvnc://${asset.ip_no}`;
-                            } catch (err) {
-                              console.error('Clipboard copy failed:', err);
-                            }
-                          }}
-                        >
-                          {asset.ip_no}
-                        </a>
-                      </span>
-                    </div>
-                  )}
-
-                  {asset.anydesk_id && (
-                    <div className="flex items-center space-x-2">
-                      <Monitor className="h-4 w-4 text-sky-600" />
-                      <span>
-                        AD:{' '}
-                        <a
-                          href={`anydesk://${asset.anydesk_id}`}
-                          className="text-sky-700 font-semibold hover:underline cursor-pointer"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            try {
-                              navigator.clipboard.writeText(asset.anydesk_id);
-                              window.location.href = `anydesk://${asset.anydesk_id}`;
-                            } catch (err) {
-                              console.error('Clipboard copy failed:', err);
-                            }
-                          }}
-                        >
-                          {asset.anydesk_id}
-                        </a>
-                      </span>
-                    </div>
-                  )}
-                  
-                  {asset.ultraview_id && (
-                    <div className="flex items-center space-x-2">
-                      <Eye className="h-4 w-4 text-sky-600" />
-                      <span>
-                        UV:{' '}
-                        <a
-                          href={`ultraviewer://${asset.ultraview_id}`}
-                          className="text-sky-700 font-semibold hover:underline cursor-pointer"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            try {
-                              navigator.clipboard.writeText(asset.ultraview_id);
-                              window.location.href = `ultraviewer://${asset.ultraview_id}`;
-                            } catch (err) {
-                              console.error('Clipboard copy failed:', err);
-                            }
-                          }}
-                        >
-                          {asset.ultraview_id}
-                        </a>
-                      </span>
-                    </div>
-                  )}
-
-
-                  {asset.antivirus_validity && (
-                    <div className="flex items-center space-x-2">
-                      <Shield className="h-4 w-4" />
-                      <span className={new Date(asset.antivirus_validity) < new Date() ? 'text-red-600 font-medium' : 'text-green-600'}>
-                        {new Date(asset.antivirus_validity).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+            {/* Assets with Expired Antivirus */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">IT Assets ({expiredAntivirusData.assets.length})</h3>
+              <div className="rounded-lg border border-red-200">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-red-50">
+                      <TableHead className="text-red-700">Device</TableHead>
+                      <TableHead className="text-red-700">User</TableHead>
+                      <TableHead className="text-red-700">Department</TableHead>
+                      <TableHead className="text-red-700">Expiry Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {expiredAntivirusData.assets.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-4 text-gray-500">
+                          No expired antivirus found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      expiredAntivirusData.assets.map((asset) => (
+                        <TableRow key={asset.id} className="hover:bg-red-50/50">
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Monitor className="h-4 w-4 text-gray-500" />
+                              <span>{asset.pc_no}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{asset.employee_name}</div>
+                              <div className="text-sm text-gray-500">{asset.designation}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{asset.division}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-red-500" />
+                              <span className="text-red-600">
+                                {new Date(asset.antivirus_validity).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )))
+                    }
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </div>
-        </div>
-        <AppFooter />
-      </div>
-    );
-  }
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 };
 
 export default Dashboard;
