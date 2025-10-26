@@ -293,7 +293,7 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Device:</span>
+                      <span className="font-medium">Remote Access Software:</span>
                       <Badge variant={asset.device_type === 'laptop' ? 'default' : 'secondary'}>
                         {asset.device_type?.toUpperCase()}
                       </Badge>
