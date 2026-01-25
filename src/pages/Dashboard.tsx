@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Building2, 
@@ -38,6 +41,13 @@ const Dashboard = () => {
   const [viewDesktops, setViewDesktops] = useState(false);
   const [laptopUsers, setLaptopUsers] = useState([]);
   const [desktopUsers, setDesktopUsers] = useState([]);
+  const [antivirusSearchText, setAntivirusSearchText] = useState("");
+  const [antivirusFilterUnit, setAntivirusFilterUnit] = useState("all");
+  const [antivirusFilterDevice, setAntivirusFilterDevice] = useState("all");
+  const [laptopSearchText, setLaptopSearchText] = useState("");
+  const [laptopFilterUnit, setLaptopFilterUnit] = useState("all");
+  const [desktopSearchText, setDesktopSearchText] = useState("");
+  const [desktopFilterUnit, setDesktopFilterUnit] = useState("all");
 
   useEffect(() => {
     loadDashboardData();
@@ -141,80 +151,260 @@ const Dashboard = () => {
     setViewDesktops(false);
   };
 
+  // Print HTML generators - must be defined before conditional returns
+  const getExpiredAntivirusPrintHTML = () => {
+    const allExpiredAssets = [...stats.expiredAntivirusUsers, ...stats.expiredAntivirusAssets];
+    const groupedByUnitDept: { [unit: string]: { [dept: string]: any[] } } = {};
+    
+    allExpiredAssets.forEach(asset => {
+      const unit = asset.unit_office || 'Unknown Unit';
+      const dept = asset.division || 'Unknown Department';
+      if (!groupedByUnitDept[unit]) groupedByUnitDept[unit] = {};
+      if (!groupedByUnitDept[unit][dept]) groupedByUnitDept[unit][dept] = [];
+      groupedByUnitDept[unit][dept].push(asset);
+    });
+
+    let htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Expired Antivirus Licenses - MNR Group IT</title><style>';
+    htmlContent += '@page { margin: 0; padding: 0; size: A4; }';
+    htmlContent += '* { margin: 0; padding: 0; box-sizing: border-box; }';
+    htmlContent += 'body { font-family: "Segoe UI", "Roboto", sans-serif; background: white; color: #1f2937; line-height: 1.5; margin: 0; padding: 0; }';
+    htmlContent += '.page { page-break-after: always; padding: 12mm 14mm; background: white; }';
+    htmlContent += '.header { text-align: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 4px solid #dc2626; background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(239, 68, 68, 0.05) 100%); padding: 12px; border-radius: 5px; }';
+    htmlContent += 'h1 { font-size: 20px; margin: 0 0 3px 0; color: #dc2626; font-weight: 800; letter-spacing: 0.6px; }';
+    htmlContent += '.company-info { font-size: 9px; color: #6b7280; margin-top: 3px; font-weight: 500; }';
+    htmlContent += '.stats-bar { display: flex; justify-content: center; gap: 30px; margin-top: 8px; font-size: 8px; }';
+    htmlContent += '.stat-value { font-size: 13px; font-weight: 800; color: #dc2626; }';
+    htmlContent += '.unit-section { margin-bottom: 16px; page-break-inside: avoid; }';
+    htmlContent += '.unit-title { font-size: 12px; font-weight: 800; color: #ffffff; background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); margin: 0; padding: 7px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.3px; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2); margin-bottom: 10px; }';
+    htmlContent += '.dept-section { margin-bottom: 12px; }';
+    htmlContent += '.dept-title { font-size: 10px; font-weight: 700; color: #dc2626; margin: 0 0 8px 0; padding-bottom: 4px; border-bottom: 2px solid #fecaca; }';
+    htmlContent += '.assets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }';
+    htmlContent += '.asset-card { padding: 8px; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1.5px solid #fca5a5; border-radius: 3px; page-break-inside: avoid; box-shadow: 0 1px 2px rgba(220, 38, 38, 0.08); }';
+    htmlContent += '.asset-name { font-weight: 700; margin-bottom: 4px; color: #7f1d1d; font-size: 10px; }';
+    htmlContent += '.asset-detail { font-size: 8px; color: #4b5563; line-height: 1.4; }';
+    htmlContent += '.asset-detail-row { margin-bottom: 2px; }';
+    htmlContent += '.asset-detail label { font-weight: 700; color: #dc2626; display: inline-block; width: 70px; }';
+    htmlContent += '.asset-detail-value { color: #1f2937; font-weight: 500; word-break: break-word; }';
+    htmlContent += '.divider { height: 0.5px; background: #fecaca; margin: 3px 0; }';
+    htmlContent += '@media print { * { margin: 0 !important; padding: 0 !important; } body { margin: 0 !important; padding: 0 !important; background: white; } .page { padding: 12mm 14mm !important; } .assets-grid { grid-template-columns: repeat(3, 1fr) !important; } }';
+    htmlContent += '</style></head><body>';
+    htmlContent += '<div class="page"><div class="header"><h1>⚠️ Expired Antivirus Licenses</h1><div class="company-info">MNR Group IT Management System</div><div class="stats-bar"><div class="stat">Total: <div class="stat-value">' + allExpiredAssets.length + '</div></div></div></div>';
+
+    Object.entries(groupedByUnitDept).forEach(([unit, depts]) => {
+      htmlContent += '<div class="unit-section"><div class="unit-title">📍 ' + unit + '</div>';
+      Object.entries(depts).forEach(([dept, assets]) => {
+        htmlContent += '<div class="dept-section"><div class="dept-title">▸ ' + dept + '</div><div class="assets-grid">';
+        assets.forEach(asset => {
+          htmlContent += '<div class="asset-card">';
+          htmlContent += '<div class="asset-name">👤 ' + (asset.employee_name || 'N/A') + '</div>';
+          htmlContent += '<div class="asset-detail">';
+          
+          let details = [];
+          if (asset.device_type) details.push('<div class="asset-detail-row"><label>Device:</label><span class="asset-detail-value">' + asset.device_type + '</span></div>');
+          if (asset.pc_no) details.push('<div class="asset-detail-row"><label>PC:</label><span class="asset-detail-value">' + asset.pc_no + '</span></div>');
+          if (asset.ip_no) details.push('<div class="asset-detail-row"><label>IP:</label><span class="asset-detail-value">' + asset.ip_no + '</span></div>');
+          if (asset.anydesk_id) details.push('<div class="asset-detail-row"><label>AnyDesk:</label><span class="asset-detail-value">' + asset.anydesk_id + '</span></div>');
+          if (asset.ultraview_id) details.push('<div class="asset-detail-row"><label>Ultraview:</label><span class="asset-detail-value">' + asset.ultraview_id + '</span></div>');
+          if (asset.phone) details.push('<div class="asset-detail-row"><label>Phone:</label><span class="asset-detail-value">' + asset.phone + '</span></div>');
+          if (asset.ip_phone) details.push('<div class="asset-detail-row"><label>IP Phone:</label><span class="asset-detail-value">' + asset.ip_phone + '</span></div>');
+          if (asset.email) details.push('<div class="asset-detail-row"><label>Email:</label><span class="asset-detail-value">' + asset.email + '</span></div>');
+          if (asset.antivirus_code) details.push('<div class="asset-detail-row"><label>Key:</label><span class="asset-detail-value">' + asset.antivirus_code + '</span></div>');
+          if (asset.antivirus_validity) {
+            const validityDate = new Date(asset.antivirus_validity);
+            details.push('<div class="asset-detail-row"><label>Expired:</label><span class="asset-detail-value" style="color: #dc2626; font-weight: 600;">' + validityDate.toLocaleDateString('en-GB') + '</span></div>');
+          }
+          
+          htmlContent += details.join('');
+          htmlContent += '</div></div>';
+        });
+        htmlContent += '</div></div>';
+      });
+      htmlContent += '</div>';
+    });
+
+    htmlContent += '</div></body></html>';
+    return htmlContent;
+  };
+
+  const getLaptopPrintHTML = () => {
+    // Group laptops by unit/office then by department
+    const laptopsByUnitDept: { [unit: string]: { [dept: string]: any[] } } = {};
+    laptopUsers.forEach(asset => {
+      const unit = asset.unit_office || 'Unknown Unit';
+      const dept = asset.division || 'Unknown Department';
+      if (!laptopsByUnitDept[unit]) laptopsByUnitDept[unit] = {};
+      if (!laptopsByUnitDept[unit][dept]) laptopsByUnitDept[unit][dept] = [];
+      laptopsByUnitDept[unit][dept].push(asset);
+    });
+
+    let htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Laptop Users - MNR Group IT</title><style>';
+    htmlContent += '@page { margin: 0; padding: 0; size: A4; }';
+    htmlContent += '* { margin: 0; padding: 0; box-sizing: border-box; }';
+    htmlContent += 'body { font-family: "Segoe UI", "Roboto", sans-serif; background: white; color: #1f2937; line-height: 1.5; margin: 0; padding: 0; }';
+    htmlContent += '.page { page-break-after: always; padding: 12mm 14mm; background: white; }';
+    htmlContent += '.header { text-align: center; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 4px solid #7c3aed; background: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(99, 102, 241, 0.05) 100%); padding: 10px; border-radius: 5px; }';
+    htmlContent += 'h1 { font-size: 18px; margin: 0 0 3px 0; color: #7c3aed; font-weight: 800; letter-spacing: 0.5px; }';
+    htmlContent += '.company-info { font-size: 9px; color: #6b7280; margin-top: 3px; font-weight: 500; }';
+    htmlContent += '.stats-bar { display: flex; justify-content: center; gap: 25px; margin-top: 6px; font-size: 8px; }';
+    htmlContent += '.stat { text-align: center; }';
+    htmlContent += '.stat-value { font-size: 12px; font-weight: 700; color: #7c3aed; }';
+    htmlContent += '.unit-section { margin-bottom: 12px; page-break-inside: avoid; }';
+    htmlContent += '.unit-title { font-size: 12px; font-weight: 800; color: #ffffff; background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); margin: 0; padding: 6px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.3px; box-shadow: 0 2px 4px rgba(124, 58, 237, 0.15); margin-bottom: 8px; }';
+    htmlContent += '.dept-title { font-size: 9px; font-weight: 700; color: #7c3aed; margin: 8px 0 6px 0; padding-bottom: 3px; border-bottom: 2px solid #ede9fe; }';
+    htmlContent += '.assets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }';
+    htmlContent += '.asset-card { padding: 6px; background: linear-gradient(135deg, #f8f7ff 0%, #f3e8ff 100%); border: 1.5px solid #d8b4fe; border-radius: 3px; page-break-inside: avoid; box-shadow: 0 1px 2px rgba(124, 58, 237, 0.08); }';
+    htmlContent += '.asset-name { font-weight: 700; margin-bottom: 4px; color: #5b21b6; font-size: 9px; }';
+    htmlContent += '.asset-detail { font-size: 8px; color: #4b5563; line-height: 1.4; }';
+    htmlContent += '.asset-detail-row { margin-bottom: 2px; }';
+    htmlContent += '.asset-detail label { font-weight: 700; color: #7c3aed; display: inline-block; width: 60px; }';
+    htmlContent += '.asset-detail-value { color: #1f2937; font-weight: 500; word-break: break-word; }';
+    htmlContent += '@media print { * { margin: 0 !important; padding: 0 !important; } body { margin: 0 !important; padding: 0 !important; background: white; } .page { padding: 12mm 14mm !important; } .assets-grid { grid-template-columns: repeat(3, 1fr) !important; } }';
+    htmlContent += '</style></head><body>';
+    htmlContent += '<div class="page"><div class="header"><h1>💻 Laptop Users Report</h1><div class="company-info">MNR Group IT Management System</div><div class="stats-bar"><div class="stat">Total: <div class="stat-value">' + laptopUsers.length + '</div></div></div></div>';
+
+    Object.entries(laptopsByUnitDept).forEach(([unit, depts]) => {
+      htmlContent += '<div class="unit-section"><div class="unit-title">📍 ' + unit + '</div>';
+      Object.entries(depts).forEach(([dept, assets]) => {
+        htmlContent += '<div class="dept-title">▸ ' + dept + '</div><div class="assets-grid">';
+        assets.forEach(asset => {
+          htmlContent += '<div class="asset-card">';
+          htmlContent += '<div class="asset-name">👤 ' + (asset.employee_name || 'N/A') + '</div>';
+          htmlContent += '<div class="asset-detail">';
+          let details = [];
+          if (asset.pc_no) details.push('<div class="asset-detail-row"><label>PC:</label><span class="asset-detail-value">' + asset.pc_no + '</span></div>');
+          if (asset.ip_no) details.push('<div class="asset-detail-row"><label>IP:</label><span class="asset-detail-value">' + asset.ip_no + '</span></div>');
+          if (asset.anydesk_id) details.push('<div class="asset-detail-row"><label>AnyDesk:</label><span class="asset-detail-value">' + asset.anydesk_id + '</span></div>');
+          if (asset.ultraview_id) details.push('<div class="asset-detail-row"><label>Ultraview:</label><span class="asset-detail-value">' + asset.ultraview_id + '</span></div>');
+          if (asset.phone) details.push('<div class="asset-detail-row"><label>Phone:</label><span class="asset-detail-value">' + asset.phone + '</span></div>');
+          if (asset.ip_phone) details.push('<div class="asset-detail-row"><label>IP Phone:</label><span class="asset-detail-value">' + asset.ip_phone + '</span></div>');
+          if (asset.email) details.push('<div class="asset-detail-row"><label>Email:</label><span class="asset-detail-value">' + asset.email + '</span></div>');
+          if (asset.email_password) details.push('<div class="asset-detail-row"><label>Pwd:</label><span class="asset-detail-value">' + asset.email_password + '</span></div>');
+          if (asset.antivirus_code) details.push('<div class="asset-detail-row"><label>AV Key:</label><span class="asset-detail-value">' + asset.antivirus_code + '</span></div>');
+          if (asset.antivirus_validity) {
+            const validityDate = new Date(asset.antivirus_validity);
+            details.push('<div class="asset-detail-row"><label>Date:</label><span class="asset-detail-value">' + validityDate.toLocaleDateString('en-GB') + '</span></div>');
+          }
+          htmlContent += details.join('');
+          htmlContent += '</div></div>';
+        });
+        htmlContent += '</div>';
+      });
+      htmlContent += '</div>';
+    });
+
+    htmlContent += '</div></body></html>';
+    return htmlContent;
+  };
+
+  const getDesktopPrintHTML = () => {
+    // Group desktops by unit/office then by department
+    const desktopsByUnitDept: { [unit: string]: { [dept: string]: any[] } } = {};
+    desktopUsers.forEach(asset => {
+      const unit = asset.unit_office || 'Unknown Unit';
+      const dept = asset.division || 'Unknown Department';
+      if (!desktopsByUnitDept[unit]) desktopsByUnitDept[unit] = {};
+      if (!desktopsByUnitDept[unit][dept]) desktopsByUnitDept[unit][dept] = [];
+      desktopsByUnitDept[unit][dept].push(asset);
+    });
+
+    let htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Desktop Users - MNR Group IT</title><style>';
+    htmlContent += '@page { margin: 0; padding: 0; size: A4; }';
+    htmlContent += '* { margin: 0; padding: 0; box-sizing: border-box; }';
+    htmlContent += 'body { font-family: "Segoe UI", "Roboto", sans-serif; background: white; color: #1f2937; line-height: 1.5; margin: 0; padding: 0; }';
+    htmlContent += '.page { page-break-after: always; padding: 12mm 14mm; background: white; }';
+    htmlContent += '.header { text-align: center; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 4px solid #059669; background: linear-gradient(135deg, rgba(5, 150, 105, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%); padding: 10px; border-radius: 5px; }';
+    htmlContent += 'h1 { font-size: 18px; margin: 0 0 3px 0; color: #059669; font-weight: 800; letter-spacing: 0.5px; }';
+    htmlContent += '.company-info { font-size: 9px; color: #6b7280; margin-top: 3px; font-weight: 500; }';
+    htmlContent += '.stats-bar { display: flex; justify-content: center; gap: 25px; margin-top: 6px; font-size: 8px; }';
+    htmlContent += '.stat { text-align: center; }';
+    htmlContent += '.stat-value { font-size: 12px; font-weight: 700; color: #059669; }';
+    htmlContent += '.unit-section { margin-bottom: 12px; page-break-inside: avoid; }';
+    htmlContent += '.unit-title { font-size: 12px; font-weight: 800; color: #ffffff; background: linear-gradient(135deg, #059669 0%, #10b981 100%); margin: 0; padding: 6px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.3px; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.15); margin-bottom: 8px; }';
+    htmlContent += '.dept-title { font-size: 9px; font-weight: 700; color: #059669; margin: 8px 0 6px 0; padding-bottom: 3px; border-bottom: 2px solid #d1fae5; }';
+    htmlContent += '.assets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }';
+    htmlContent += '.asset-card { padding: 6px; background: linear-gradient(135deg, #f0fdf4 0%, #dbeafe 100%); border: 1.5px solid #86efac; border-radius: 3px; page-break-inside: avoid; box-shadow: 0 1px 2px rgba(5, 150, 105, 0.08); }';
+    htmlContent += '.asset-name { font-weight: 700; margin-bottom: 4px; color: #065f46; font-size: 9px; }';
+    htmlContent += '.asset-detail { font-size: 8px; color: #4b5563; line-height: 1.4; }';
+    htmlContent += '.asset-detail-row { margin-bottom: 2px; }';
+    htmlContent += '.asset-detail label { font-weight: 700; color: #059669; display: inline-block; width: 60px; }';
+    htmlContent += '.asset-detail-value { color: #1f2937; font-weight: 500; word-break: break-word; }';
+    htmlContent += '@media print { * { margin: 0 !important; padding: 0 !important; } body { margin: 0 !important; padding: 0 !important; background: white; } .page { padding: 12mm 14mm !important; } .assets-grid { grid-template-columns: repeat(3, 1fr) !important; } }';
+    htmlContent += '</style></head><body>';
+    htmlContent += '<div class="page"><div class="header"><h1>🖥️ Desktop Users Report</h1><div class="company-info">MNR Group IT Management System</div><div class="stats-bar"><div class="stat">Total: <div class="stat-value">' + desktopUsers.length + '</div></div></div></div>';
+
+    Object.entries(desktopsByUnitDept).forEach(([unit, depts]) => {
+      htmlContent += '<div class="unit-section"><div class="unit-title">📍 ' + unit + '</div>';
+      Object.entries(depts).forEach(([dept, assets]) => {
+        htmlContent += '<div class="dept-title">▸ ' + dept + '</div><div class="assets-grid">';
+        assets.forEach(asset => {
+          htmlContent += '<div class="asset-card">';
+          htmlContent += '<div class="asset-name">👤 ' + (asset.employee_name || 'N/A') + '</div>';
+          htmlContent += '<div class="asset-detail">';
+          let details = [];
+          if (asset.pc_no) details.push('<div class="asset-detail-row"><label>PC:</label><span class="asset-detail-value">' + asset.pc_no + '</span></div>');
+          if (asset.ip_no) details.push('<div class="asset-detail-row"><label>IP:</label><span class="asset-detail-value">' + asset.ip_no + '</span></div>');
+          if (asset.anydesk_id) details.push('<div class="asset-detail-row"><label>AnyDesk:</label><span class="asset-detail-value">' + asset.anydesk_id + '</span></div>');
+          if (asset.ultraview_id) details.push('<div class="asset-detail-row"><label>Ultraview:</label><span class="asset-detail-value">' + asset.ultraview_id + '</span></div>');
+          if (asset.phone) details.push('<div class="asset-detail-row"><label>Phone:</label><span class="asset-detail-value">' + asset.phone + '</span></div>');
+          if (asset.ip_phone) details.push('<div class="asset-detail-row"><label>IP Phone:</label><span class="asset-detail-value">' + asset.ip_phone + '</span></div>');
+          if (asset.email) details.push('<div class="asset-detail-row"><label>Email:</label><span class="asset-detail-value">' + asset.email + '</span></div>');
+          if (asset.email_password) details.push('<div class="asset-detail-row"><label>Pwd:</label><span class="asset-detail-value">' + asset.email_password + '</span></div>');
+          if (asset.antivirus_code) details.push('<div class="asset-detail-row"><label>AV Key:</label><span class="asset-detail-value">' + asset.antivirus_code + '</span></div>');
+          if (asset.antivirus_validity) {
+            const validityDate = new Date(asset.antivirus_validity);
+            details.push('<div class="asset-detail-row"><label>Date:</label><span class="asset-detail-value">' + validityDate.toLocaleDateString('en-GB') + '</span></div>');
+          }
+          htmlContent += details.join('');
+          htmlContent += '</div></div>';
+        });
+        htmlContent += '</div>';
+      });
+      htmlContent += '</div>';
+    });
+
+    htmlContent += '</div></body></html>';
+    return htmlContent;
+  };
+
   // Laptops View
   if (viewLaptops) {
-    // Group laptops by unit/office
-    const laptopsByUnit: { [key: string]: any[] } = laptopUsers.reduce((acc, asset) => {
+    // Group laptops by unit/office then by department
+    const laptopsByUnitDept: { [unit: string]: { [dept: string]: any[] } } = {};
+    laptopUsers.forEach(asset => {
       const unit = asset.unit_office || 'Unknown Unit';
-      if (!acc[unit]) acc[unit] = [];
-      acc[unit].push(asset);
-      return acc;
-    }, {} as { [key: string]: any[] });
+      const dept = asset.division || 'Unknown Department';
+      if (!laptopsByUnitDept[unit]) laptopsByUnitDept[unit] = {};
+      if (!laptopsByUnitDept[unit][dept]) laptopsByUnitDept[unit][dept] = [];
+      laptopsByUnitDept[unit][dept].push(asset);
+    });
+
+    // Apply filters
+    const filteredLaptopsByUnitDept: { [unit: string]: { [dept: string]: any[] } } = {};
+    Object.entries(laptopsByUnitDept).forEach(([unit, depts]) => {
+      if (laptopFilterUnit !== "all" && unit !== laptopFilterUnit) return;
+      
+      const filteredDepts: { [dept: string]: any[] } = {};
+      Object.entries(depts).forEach(([dept, assets]) => {
+        const filtered = assets.filter(asset => {
+          const matchesSearch = !laptopSearchText || 
+            (asset.employee_name?.toLowerCase().includes(laptopSearchText.toLowerCase())) ||
+            (asset.email?.toLowerCase().includes(laptopSearchText.toLowerCase())) ||
+            (asset.ip_no?.includes(laptopSearchText)) ||
+            (asset.designation?.toLowerCase().includes(laptopSearchText.toLowerCase()));
+          return matchesSearch;
+        });
+        if (filtered.length > 0) filteredDepts[dept] = filtered;
+      });
+      if (Object.keys(filteredDepts).length > 0) filteredLaptopsByUnitDept[unit] = filteredDepts;
+    });
 
     const copyToClipboard = (text: string, label: string) => {
       navigator.clipboard.writeText(text);
-      toast({ title: 'Copied!', description: `${label}: ${text}` });
-    };
-
-    const handleIPClick = (ip: string) => {
-      copyToClipboard(ip, 'IP Address');
-      // Try to open command prompt or notify user
-      if (navigator.platform.toUpperCase().indexOf('WIN') > -1) {
-        toast({ title: 'IP Copied', description: `You can now ping ${ip} from command prompt` });
-      }
-    };
-
-    const handleEmailClick = (email: string) => {
-      window.location.href = `mailto:${email}`;
-    };
-
-    const handlePhoneClick = (phone: string) => {
-      window.location.href = `tel:${phone}`;
-    };
-
-    const handleAnyDeskClick = (id: string) => {
-      copyToClipboard(id, 'AnyDesk ID');
-      // Attempt to open AnyDesk - this may vary by OS
-      const anyDeskUrl = `anydesk://open?id=${id}`;
-      window.location.href = anyDeskUrl;
-    };
-
-    const handleUltraViewClick = (id: string) => {
-      copyToClipboard(id, 'UltraView ID');
-      toast({ title: 'UltraView ID Copied', description: `Launch UltraView and enter: ${id}` });
+      toast({ title: 'Copied!', description: `${label}` });
     };
 
     return (
       <div className="p-6 space-y-6 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 min-h-screen">
-        <style>{`
-          .laptop-info-btn {
-            padding: 8px 12px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
-            border: 1px solid rgba(168, 85, 247, 0.3);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 12px;
-            font-weight: 500;
-          }
-          .laptop-info-btn:hover {
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
-            border-color: rgba(168, 85, 247, 0.6);
-            transform: translateY(-1px);
-          }
-          .device-card-laptop {
-            background: linear-gradient(135deg, rgba(243, 232, 255, 0.8) 0%, rgba(240, 245, 250, 0.8) 100%);
-            border: 1.5px solid rgba(168, 85, 247, 0.3);
-            border-radius: 12px;
-            padding: 16px;
-            transition: all 0.3s ease;
-          }
-          .device-card-laptop:hover {
-            transform: translateY(-4px);
-            border-color: rgba(168, 85, 247, 0.6);
-            box-shadow: 0 12px 24px rgba(168, 85, 247, 0.15);
-          }
-        `}</style>
         <div className="flex items-center justify-between">
           <div>
             <Button 
@@ -222,18 +412,46 @@ const Dashboard = () => {
               onClick={handleBackFromLaptops}
               className="mb-4 border-sky-200 text-sky-700 hover:bg-sky-50"
             >
-              ← Back to Dashboard
+              Back to Dashboard
             </Button>
-            <h1 className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-              Laptop Users
-            </h1>
+            <h1 className="text-3xl font-bold text-purple-600">Laptop Users</h1>
             <p className="text-muted-foreground">
-              Total: {laptopUsers.length} laptop users (grouped by unit/office)
+              Total: {laptopUsers.length} laptop users
             </p>
           </div>
           <Button
             variant="outline"
-            onClick={() => window.print()}
+            onClick={() => {
+              try {
+                const htmlContent = getLaptopPrintHTML();
+                console.log('HTML Content Length:', htmlContent.length);
+                console.log('Laptop Users Count:', laptopUsers.length);
+                
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const printWindow = window.open(url, '_blank', 'width=1000,height=600');
+                
+                if (printWindow) {
+                  setTimeout(() => {
+                    printWindow.focus();
+                    printWindow.print();
+                  }, 800);
+                } else {
+                  toast({
+                    title: "Error",
+                    description: "Print window blocked. Please allow pop-ups.",
+                    variant: "destructive",
+                  });
+                }
+              } catch (error) {
+                console.error('Print Error:', error);
+                toast({
+                  title: "Error",
+                  description: "Failed to generate print document",
+                  variant: "destructive",
+                });
+              }
+            }}
             className="border-purple-200 text-purple-700 hover:bg-purple-50 no-print"
           >
             <Printer className="h-4 w-4 mr-2" />
@@ -241,123 +459,127 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        <div className="space-y-8">
-          {Object.entries(laptopsByUnit).map(([unit, assets]: [string, any[]]) => (
-            <Card key={unit} className="border-purple-200 bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  {unit}
-                </CardTitle>
-                <CardDescription className="text-purple-100">
-                  {assets.length} laptop user{assets.length !== 1 ? 's' : ''}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {assets.map((item) => (
-                    <div key={item.id} className="device-card-laptop">
-                      <div className="font-bold text-purple-900 text-lg mb-1">{item.employee_name || 'N/A'}</div>
-                      <div className="text-sm text-gray-600 mb-4 font-medium">{item.designation || 'N/A'}</div>
-                      
-                      <div className="space-y-2">
-                        {item.pc_no && (
-                          <button onClick={() => copyToClipboard(item.pc_no, 'PC No')} className="laptop-info-btn w-full text-left">📱 {item.pc_no}</button>
-                        )}
-                        {item.ip_no && (
-                          <button onClick={() => handleIPClick(item.ip_no)} className="laptop-info-btn w-full text-left" title="Click to copy IP and open command prompt">🌐 {item.ip_no}</button>
-                        )}
-                        {item.ip_phone && (
-                          <button onClick={() => copyToClipboard(item.ip_phone, 'IP Phone')} className="laptop-info-btn w-full text-left">☎️ {item.ip_phone}</button>
-                        )}
-                        {item.mobile && (
-                          <button onClick={() => handlePhoneClick(item.mobile)} className="laptop-info-btn w-full text-left" title="Click to dial mobile number">📲 {item.mobile}</button>
-                        )}
-                        {item.phone_no && (
-                          <button onClick={() => handlePhoneClick(item.phone_no)} className="laptop-info-btn w-full text-left" title="Click to dial phone number">📞 {item.phone_no}</button>
-                        )}
-                        {item.email && (
-                          <button onClick={() => handleEmailClick(item.email)} className="laptop-info-btn w-full text-left text-purple-700 font-semibold" title="Click to send email">✉️ {item.email}</button>
-                        )}
-                        {item.anydesk_id && (
-                          <button onClick={() => handleAnyDeskClick(item.anydesk_id)} className="laptop-info-btn w-full text-left" title="Click to copy AnyDesk ID and launch">🔴 {item.anydesk_id}</button>
-                        )}
-                        {item.ultraview_id && (
-                          <button onClick={() => handleUltraViewClick(item.ultraview_id)} className="laptop-info-btn w-full text-left" title="Click to copy UltraView ID">👁️ {item.ultraview_id}</button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Print Container for Laptops */}
-        <div id="laptop-print-container">
-          <div className="laptop-print-header">
-            <p>Generated on {new Date().toLocaleDateString()}</p>
-          </div>
-          
-          {Object.entries(laptopsByUnit).map(([unit, assets]: [string, any[]]) => {
-            // Group assets by department within unit
-            const assetsByDept: { [key: string]: any[] } = assets.reduce((acc, asset) => {
-              const dept = asset.department_name || 'Unknown Department';
-              if (!acc[dept]) acc[dept] = [];
-              acc[dept].push(asset);
-              return acc;
-            }, {});
-
-            return (
-              <div key={unit} className="laptop-print-section">
-                <div className="laptop-print-unit-title">{unit}</div>
-                
-                {Object.entries(assetsByDept).map(([dept, deptAssets]: [string, any[]]) => (
-                  <div key={dept} className="laptop-print-dept-section">
-                    <div className="laptop-print-dept-title">{dept}</div>
-                    <table className="laptop-print-table">
-                      <thead>
-                        <tr>
-                          <th>Employee Name</th>
-                          <th>Designation</th>
-                          <th>PC No</th>
-                          <th>IP Address</th>
-                          <th>IP Phone</th>
-                          <th>Mobile</th>
-                          <th>Phone</th>
-                          <th>Email</th>
-                          <th>AnyDesk</th>
-                          <th>UltraView</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {deptAssets.map((item) => (
-                          <tr key={item.id}>
-                            <td>{item.employee_name || '-'}</td>
-                            <td>{item.designation || '-'}</td>
-                            <td>{item.pc_no || '-'}</td>
-                            <td>{item.ip_no || '-'}</td>
-                            <td>{item.ip_phone || '-'}</td>
-                            <td>{item.mobile || '-'}</td>
-                            <td>{item.phone_no || '-'}</td>
-                            <td>{item.email || '-'}</td>
-                            <td>{item.anydesk_id || '-'}</td>
-                            <td>{item.ultraview_id || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
+        {/* Search and Filter Section */}
+        <Card className="border-purple-200 bg-purple-50">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-sm font-semibold text-purple-700 mb-2 block">Search</Label>
+                <input
+                  type="text"
+                  placeholder="Name, email, IP..."
+                  value={laptopSearchText}
+                  onChange={(e) => setLaptopSearchText(e.target.value)}
+                  className="w-full px-3 py-2 border border-purple-200 rounded-lg"
+                />
               </div>
-            );
-          })}
-          
-          <div className="laptop-print-footer">
-            <p>Total Laptop Users: {laptopUsers.length}</p>
-            <p>Department: IT Systems | Report Type: Device Inventory</p>
-          </div>
+              <div>
+                <Label className="text-sm font-semibold text-purple-700 mb-2 block">Unit/Office</Label>
+                <select
+                  value={laptopFilterUnit}
+                  onChange={(e) => setLaptopFilterUnit(e.target.value)}
+                  className="w-full px-3 py-2 border border-purple-200 rounded-lg"
+                >
+                  <option value="all">All Units</option>
+                  {Object.keys(laptopsByUnitDept).sort().map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={() => {
+                    setLaptopSearchText("");
+                    setLaptopFilterUnit("all");
+                  }}
+                  variant="outline"
+                  className="w-full border-purple-300"
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Units and Departments */}
+        <div className="space-y-8">
+          {Object.entries(filteredLaptopsByUnitDept).map(([unit, deptMap]) => (
+            <div key={unit}>
+              <h3 className="text-2xl font-bold text-purple-700 mb-4 pb-2 border-b-2 border-purple-300">{unit}</h3>
+              {Object.entries(deptMap).map(([dept, assets]) => (
+                <div key={dept} className="mb-6">
+                  <h4 className="text-lg font-semibold text-purple-600 mb-3 ml-2">{dept}</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {assets.map((item) => (
+                      <div key={item.id} className="group relative bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:shadow-lg transition-all duration-300 overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-indigo-500/5 group-hover:from-purple-500/10 group-hover:to-indigo-500/10 transition-all"></div>
+                        <div className="relative p-3">
+                          {/* Header */}
+                          <div className="mb-2 pb-2 border-b border-purple-200">
+                            <div className="font-bold text-purple-900 text-xs line-clamp-1">{item.employee_name}</div>
+                            <div className="text-xs text-gray-600 line-clamp-1">{item.designation}</div>
+                          </div>
+                          
+                          {/* Info Items */}
+                          <div className="space-y-1 text-xs">
+                            {item.pc_no && (
+                              <button onClick={() => copyToClipboard(item.pc_no, 'PC No')} 
+                                className="w-full text-left px-1.5 py-1 bg-purple-100 hover:bg-purple-200 rounded border border-purple-300 transition-colors font-medium text-purple-700 truncate text-xs">
+                                PC: {item.pc_no}
+                              </button>
+                            )}
+                            {item.ip_no && (
+                              <button onClick={() => copyToClipboard(item.ip_no, 'IP')} 
+                                className="w-full text-left px-1.5 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300 transition-colors font-medium text-blue-700 truncate text-xs">
+                                IP: {item.ip_no}
+                              </button>
+                            )}
+                            {item.ip_phone && (
+                              <button onClick={() => copyToClipboard(item.ip_phone, 'IP Phone')} 
+                                className="w-full text-left px-1.5 py-1 bg-cyan-100 hover:bg-cyan-200 rounded border border-cyan-300 transition-colors font-medium text-cyan-700 truncate text-xs">
+                                IPTel: {item.ip_phone}
+                              </button>
+                            )}
+                            {item.phone_no && (
+                              <button onClick={() => copyToClipboard(item.phone_no, 'Phone')} 
+                                className="w-full text-left px-1.5 py-1 bg-rose-100 hover:bg-rose-200 rounded border border-rose-300 transition-colors font-medium text-rose-700 truncate text-xs">
+                                Tel: {item.phone_no}
+                              </button>
+                            )}
+                            {item.mobile && (
+                              <button onClick={() => copyToClipboard(item.mobile, 'Mobile')} 
+                                className="w-full text-left px-1.5 py-1 bg-pink-100 hover:bg-pink-200 rounded border border-pink-300 transition-colors font-medium text-pink-700 truncate text-xs">
+                                Mob: {item.mobile}
+                              </button>
+                            )}
+                            {item.email && (
+                              <button onClick={() => window.location.href = `mailto:${item.email}`} 
+                                className="w-full text-left px-1.5 py-1 bg-green-100 hover:bg-green-200 rounded border border-green-300 transition-colors font-medium text-green-700 truncate text-xs">
+                                Email: {item.email}
+                              </button>
+                            )}
+                            {item.anydesk_id && (
+                              <button onClick={() => { copyToClipboard(item.anydesk_id, 'AnyDesk'); window.location.href = `anydesk://connect=${item.anydesk_id}`; }} 
+                                className="w-full text-left px-1.5 py-1 bg-orange-100 hover:bg-orange-200 rounded border border-orange-300 transition-colors font-medium text-orange-700 truncate text-xs">
+                                AnyDesk: {item.anydesk_id}
+                              </button>
+                            )}
+                            {item.ultraview_id && (
+                              <button onClick={() => copyToClipboard(item.ultraview_id, 'UltraView')} 
+                                className="w-full text-left px-1.5 py-1 bg-indigo-100 hover:bg-indigo-200 rounded border border-indigo-300 transition-colors font-medium text-indigo-700 truncate text-xs">
+                                UV: {item.ultraview_id}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -365,76 +587,43 @@ const Dashboard = () => {
 
   // Desktops View
   if (viewDesktops) {
-    // Group desktops by unit/office
-    const desktopsByUnit: { [key: string]: any[] } = desktopUsers.reduce((acc, asset) => {
+    // Group desktops by unit/office then by department
+    const desktopsByUnitDept: { [unit: string]: { [dept: string]: any[] } } = {};
+    desktopUsers.forEach(asset => {
       const unit = asset.unit_office || 'Unknown Unit';
-      if (!acc[unit]) acc[unit] = [];
-      acc[unit].push(asset);
-      return acc;
-    }, {} as { [key: string]: any[] });
+      const dept = asset.division || 'Unknown Department';
+      if (!desktopsByUnitDept[unit]) desktopsByUnitDept[unit] = {};
+      if (!desktopsByUnitDept[unit][dept]) desktopsByUnitDept[unit][dept] = [];
+      desktopsByUnitDept[unit][dept].push(asset);
+    });
+
+    // Apply filters
+    const filteredDesktopsByUnitDept: { [unit: string]: { [dept: string]: any[] } } = {};
+    Object.entries(desktopsByUnitDept).forEach(([unit, depts]) => {
+      if (desktopFilterUnit !== "all" && unit !== desktopFilterUnit) return;
+      
+      const filteredDepts: { [dept: string]: any[] } = {};
+      Object.entries(depts).forEach(([dept, assets]) => {
+        const filtered = assets.filter(asset => {
+          const matchesSearch = !desktopSearchText || 
+            (asset.employee_name?.toLowerCase().includes(desktopSearchText.toLowerCase())) ||
+            (asset.email?.toLowerCase().includes(desktopSearchText.toLowerCase())) ||
+            (asset.ip_no?.includes(desktopSearchText)) ||
+            (asset.designation?.toLowerCase().includes(desktopSearchText.toLowerCase()));
+          return matchesSearch;
+        });
+        if (filtered.length > 0) filteredDepts[dept] = filtered;
+      });
+      if (Object.keys(filteredDepts).length > 0) filteredDesktopsByUnitDept[unit] = filteredDepts;
+    });
 
     const copyToClipboard = (text: string, label: string) => {
       navigator.clipboard.writeText(text);
-      toast({ title: 'Copied!', description: `${label}: ${text}` });
-    };
-
-    const handleIPClick = (ip: string) => {
-      copyToClipboard(ip, 'IP Address');
-      if (navigator.platform.toUpperCase().indexOf('WIN') > -1) {
-        toast({ title: 'IP Copied', description: `You can now ping ${ip} from command prompt` });
-      }
-    };
-
-    const handleEmailClick = (email: string) => {
-      window.location.href = `mailto:${email}`;
-    };
-
-    const handlePhoneClick = (phone: string) => {
-      window.location.href = `tel:${phone}`;
-    };
-
-    const handleAnyDeskClick = (id: string) => {
-      copyToClipboard(id, 'AnyDesk ID');
-      const anyDeskUrl = `anydesk://open?id=${id}`;
-      window.location.href = anyDeskUrl;
-    };
-
-    const handleUltraViewClick = (id: string) => {
-      copyToClipboard(id, 'UltraView ID');
-      toast({ title: 'UltraView ID Copied', description: `Launch UltraView and enter: ${id}` });
+      toast({ title: 'Copied!', description: `${label}` });
     };
 
     return (
       <div className="p-6 space-y-6 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800 min-h-screen">
-        <style>{`
-          .desktop-info-btn {
-            padding: 8px 12px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 12px;
-            font-weight: 500;
-          }
-          .desktop-info-btn:hover {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%);
-            border-color: rgba(16, 185, 129, 0.6);
-            transform: translateY(-1px);
-          }
-          .device-card-desktop {
-            background: linear-gradient(135deg, rgba(209, 250, 229, 0.8) 0%, rgba(207, 250, 254, 0.8) 100%);
-            border: 1.5px solid rgba(16, 185, 129, 0.3);
-            border-radius: 12px;
-            padding: 16px;
-            transition: all 0.3s ease;
-          }
-          .device-card-desktop:hover {
-            transform: translateY(-4px);
-            border-color: rgba(16, 185, 129, 0.6);
-            box-shadow: 0 12px 24px rgba(16, 185, 129, 0.15);
-          }
-        `}</style>
         <div className="flex items-center justify-between">
           <div>
             <Button 
@@ -442,18 +631,46 @@ const Dashboard = () => {
               onClick={handleBackFromDesktops}
               className="mb-4 border-sky-200 text-sky-700 hover:bg-sky-50"
             >
-              ← Back to Dashboard
+              Back to Dashboard
             </Button>
-            <h1 className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-              Desktop Users
-            </h1>
+            <h1 className="text-3xl font-bold text-emerald-600">Desktop Users</h1>
             <p className="text-muted-foreground">
-              Total: {desktopUsers.length} desktop users (grouped by unit/office)
+              Total: {desktopUsers.length} desktop users
             </p>
           </div>
           <Button
             variant="outline"
-            onClick={() => window.print()}
+            onClick={() => {
+              try {
+                const htmlContent = getDesktopPrintHTML();
+                console.log('HTML Content Length:', htmlContent.length);
+                console.log('Desktop Users Count:', desktopUsers.length);
+                
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const printWindow = window.open(url, '_blank', 'width=1000,height=600');
+                
+                if (printWindow) {
+                  setTimeout(() => {
+                    printWindow.focus();
+                    printWindow.print();
+                  }, 800);
+                } else {
+                  toast({
+                    title: "Error",
+                    description: "Print window blocked. Please allow pop-ups.",
+                    variant: "destructive",
+                  });
+                }
+              } catch (error) {
+                console.error('Print Error:', error);
+                toast({
+                  title: "Error",
+                  description: "Failed to generate print document",
+                  variant: "destructive",
+                });
+              }
+            }}
             className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 no-print"
           >
             <Printer className="h-4 w-4 mr-2" />
@@ -461,107 +678,127 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        <div className="space-y-8">
-          {Object.entries(desktopsByUnit).map(([unit, assets]: [string, any[]]) => (
-            <Card key={unit} className="border-emerald-200 bg-white/80 backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  {unit}
-                </CardTitle>
-                <CardDescription className="text-emerald-100">
-                  {assets.length} desktop user{assets.length !== 1 ? 's' : ''}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {assets.map((item) => (
-                    <div key={item.id} className="device-card-desktop">
-                      <div className="font-bold text-emerald-900 text-lg mb-1">{item.employee_name || 'N/A'}</div>
-                      <div className="text-sm text-gray-600 mb-4 font-medium">{item.designation || 'N/A'}</div>
-                      
-                      <div className="space-y-2">
-                        {item.pc_no && (
-                          <button onClick={() => copyToClipboard(item.pc_no, 'PC No')} className="desktop-info-btn w-full text-left">📱 {item.pc_no}</button>
-                        )}
-                        {item.ip_no && (
-                          <button onClick={() => handleIPClick(item.ip_no)} className="desktop-info-btn w-full text-left" title="Click to copy IP and open command prompt">🌐 {item.ip_no}</button>
-                        )}
-                        {item.ip_phone && (
-                          <button onClick={() => copyToClipboard(item.ip_phone, 'IP Phone')} className="desktop-info-btn w-full text-left">☎️ {item.ip_phone}</button>
-                        )}
-                        {item.mobile && (
-                          <button onClick={() => handlePhoneClick(item.mobile)} className="desktop-info-btn w-full text-left" title="Click to dial mobile number">📲 {item.mobile}</button>
-                        )}
-                        {item.phone_no && (
-                          <button onClick={() => handlePhoneClick(item.phone_no)} className="desktop-info-btn w-full text-left" title="Click to dial phone number">📞 {item.phone_no}</button>
-                        )}
-                        {item.email && (
-                          <button onClick={() => handleEmailClick(item.email)} className="desktop-info-btn w-full text-left text-emerald-700 font-semibold" title="Click to send email">✉️ {item.email}</button>
-                        )}
-                        {item.anydesk_id && (
-                          <button onClick={() => handleAnyDeskClick(item.anydesk_id)} className="desktop-info-btn w-full text-left" title="Click to copy AnyDesk ID and launch">🔴 {item.anydesk_id}</button>
-                        )}
-                        {item.ultraview_id && (
-                          <button onClick={() => handleUltraViewClick(item.ultraview_id)} className="desktop-info-btn w-full text-left" title="Click to copy UltraView ID">👁️ {item.ultraview_id}</button>
-                        )}
-                      </div>
-                    </div>
+        {/* Search and Filter Section */}
+        <Card className="border-emerald-200 bg-emerald-50">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-sm font-semibold text-emerald-700 mb-2 block">Search</Label>
+                <input
+                  type="text"
+                  placeholder="Name, email, IP..."
+                  value={desktopSearchText}
+                  onChange={(e) => setDesktopSearchText(e.target.value)}
+                  className="w-full px-3 py-2 border border-emerald-200 rounded-lg"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold text-emerald-700 mb-2 block">Unit/Office</Label>
+                <select
+                  value={desktopFilterUnit}
+                  onChange={(e) => setDesktopFilterUnit(e.target.value)}
+                  className="w-full px-3 py-2 border border-emerald-200 rounded-lg"
+                >
+                  <option value="all">All Units</option>
+                  {Object.keys(desktopsByUnitDept).sort().map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={() => {
+                    setDesktopSearchText("");
+                    setDesktopFilterUnit("all");
+                  }}
+                  variant="outline"
+                  className="w-full border-emerald-300"
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Print Container for Desktops */}
-        <div id="desktop-print-container">
-          <div className="desktop-print-header">
-            <p>Generated on {new Date().toLocaleDateString()}</p>
-          </div>
-          
-          {Object.entries(desktopsByUnit).map(([unit, assets]: [string, any[]]) => (
-            <div key={unit} className="desktop-print-section">
-              <div className="desktop-print-unit-title">{unit}</div>
-              <table className="desktop-print-table">
-                <thead>
-                  <tr>
-                    <th>Employee Name</th>
-                    <th>Designation</th>
-                    <th>PC No</th>
-                    <th>IP Address</th>
-                    <th>IP Phone</th>
-                    <th>Mobile</th>
-                    <th>Phone</th>
-                    <th>Email</th>
-                    <th>AnyDesk</th>
-                    <th>UltraView</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assets.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.employee_name || '-'}</td>
-                      <td>{item.designation || '-'}</td>
-                      <td>{item.pc_no || '-'}</td>
-                      <td>{item.ip_no || '-'}</td>
-                      <td>{item.ip_phone || '-'}</td>
-                      <td>{item.mobile || '-'}</td>
-                      <td>{item.phone_no || '-'}</td>
-                      <td>{item.email || '-'}</td>
-                      <td>{item.anydesk_id || '-'}</td>
-                      <td>{item.ultraview_id || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Units and Departments */}
+        <div className="space-y-8">
+          {Object.entries(filteredDesktopsByUnitDept).map(([unit, deptMap]) => (
+            <div key={unit}>
+              <h3 className="text-2xl font-bold text-emerald-700 mb-4 pb-2 border-b-2 border-emerald-300">{unit}</h3>
+              {Object.entries(deptMap).map(([dept, assets]) => (
+                <div key={dept} className="mb-6">
+                  <h4 className="text-lg font-semibold text-emerald-600 mb-3 ml-2">{dept}</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {assets.map((item) => (
+                      <div key={item.id} className="group relative bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-lg hover:border-emerald-400 hover:shadow-lg transition-all duration-300 overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 group-hover:from-emerald-500/10 group-hover:to-teal-500/10 transition-all"></div>
+                        <div className="relative p-3">
+                          {/* Header */}
+                          <div className="mb-2 pb-2 border-b border-emerald-200">
+                            <div className="font-bold text-emerald-900 text-xs line-clamp-1">{item.employee_name}</div>
+                            <div className="text-xs text-gray-600 line-clamp-1">{item.designation}</div>
+                          </div>
+                          
+                          {/* Info Items */}
+                          <div className="space-y-1 text-xs">
+                            {item.pc_no && (
+                              <button onClick={() => copyToClipboard(item.pc_no, 'PC No')} 
+                                className="w-full text-left px-1.5 py-1 bg-emerald-100 hover:bg-emerald-200 rounded border border-emerald-300 transition-colors font-medium text-emerald-700 truncate text-xs">
+                                PC: {item.pc_no}
+                              </button>
+                            )}
+                            {item.ip_no && (
+                              <button onClick={() => copyToClipboard(item.ip_no, 'IP')} 
+                                className="w-full text-left px-1.5 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300 transition-colors font-medium text-blue-700 truncate text-xs">
+                                IP: {item.ip_no}
+                              </button>
+                            )}
+                            {item.ip_phone && (
+                              <button onClick={() => copyToClipboard(item.ip_phone, 'IP Phone')} 
+                                className="w-full text-left px-1.5 py-1 bg-cyan-100 hover:bg-cyan-200 rounded border border-cyan-300 transition-colors font-medium text-cyan-700 truncate text-xs">
+                                IPTel: {item.ip_phone}
+                              </button>
+                            )}
+                            {item.phone_no && (
+                              <button onClick={() => copyToClipboard(item.phone_no, 'Phone')} 
+                                className="w-full text-left px-1.5 py-1 bg-rose-100 hover:bg-rose-200 rounded border border-rose-300 transition-colors font-medium text-rose-700 truncate text-xs">
+                                Tel: {item.phone_no}
+                              </button>
+                            )}
+                            {item.mobile && (
+                              <button onClick={() => copyToClipboard(item.mobile, 'Mobile')} 
+                                className="w-full text-left px-1.5 py-1 bg-pink-100 hover:bg-pink-200 rounded border border-pink-300 transition-colors font-medium text-pink-700 truncate text-xs">
+                                Mob: {item.mobile}
+                              </button>
+                            )}
+                            {item.email && (
+                              <button onClick={() => window.location.href = `mailto:${item.email}`} 
+                                className="w-full text-left px-1.5 py-1 bg-green-100 hover:bg-green-200 rounded border border-green-300 transition-colors font-medium text-green-700 truncate text-xs">
+                                Email: {item.email}
+                              </button>
+                            )}
+                            {item.anydesk_id && (
+                              <button onClick={() => { copyToClipboard(item.anydesk_id, 'AnyDesk'); window.location.href = `anydesk://connect=${item.anydesk_id}`; }} 
+                                className="w-full text-left px-1.5 py-1 bg-orange-100 hover:bg-orange-200 rounded border border-orange-300 transition-colors font-medium text-orange-700 truncate text-xs">
+                                AnyDesk: {item.anydesk_id}
+                              </button>
+                            )}
+                            {item.ultraview_id && (
+                              <button onClick={() => copyToClipboard(item.ultraview_id, 'UltraView')} 
+                                className="w-full text-left px-1.5 py-1 bg-teal-100 hover:bg-teal-200 rounded border border-teal-300 transition-colors font-medium text-teal-700 truncate text-xs">
+                                UV: {item.ultraview_id}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
-          
-          <div className="desktop-print-footer">
-            <p>Total Desktop Users: {desktopUsers.length}</p>
-            <p>Department: IT Systems | Report Type: Device Inventory</p>
-          </div>
         </div>
       </div>
     );
@@ -585,25 +822,54 @@ const Dashboard = () => {
       expiredByUnitAndDept[unit][dept].push(asset);
     });
 
+    // Filter logic
+    let filteredByUnitAndDept = expiredByUnitAndDept;
+    if (antivirusFilterUnit !== "all") {
+      filteredByUnitAndDept = {
+        [antivirusFilterUnit]: expiredByUnitAndDept[antivirusFilterUnit]
+      };
+    }
+
+    // Apply device type filter
+    if (antivirusFilterDevice !== "all") {
+      Object.keys(filteredByUnitAndDept).forEach(unit => {
+        Object.keys(filteredByUnitAndDept[unit]).forEach(dept => {
+          filteredByUnitAndDept[unit][dept] = filteredByUnitAndDept[unit][dept].filter(asset =>
+            asset.device_type?.toLowerCase() === antivirusFilterDevice.toLowerCase()
+          );
+        });
+      });
+    }
+
+    // Apply search filter to all assets
+    if (antivirusSearchText) {
+      const searchLower = antivirusSearchText.toLowerCase();
+      Object.keys(filteredByUnitAndDept).forEach(unit => {
+        Object.keys(filteredByUnitAndDept[unit]).forEach(dept => {
+          filteredByUnitAndDept[unit][dept] = filteredByUnitAndDept[unit][dept].filter(asset =>
+            asset.employee_name?.toLowerCase().includes(searchLower) ||
+            asset.email?.toLowerCase().includes(searchLower) ||
+            asset.ip_no?.toLowerCase().includes(searchLower) ||
+            asset.anydesk_id?.toLowerCase().includes(searchLower)
+          );
+        });
+      });
+    }
+
     const totalExpired = stats.expiredAntivirusAssets.length;
+    const filteredCount = Object.values(filteredByUnitAndDept).reduce((sum, depts) => 
+      sum + Object.values(depts).reduce((s, assets) => s + assets.length, 0), 0
+    );
 
     return (
       <div className="p-6 space-y-6 bg-gradient-to-br from-red-50 via-orange-50 to-rose-50 dark:from-slate-900 dark:to-slate-800 min-h-screen">
         <style>{`
-          @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-          }
-          @keyframes glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.3); }
-            50% { box-shadow: 0 0 40px rgba(220, 38, 38, 0.6); }
-          }
           .card-3d {
-            transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+            transition: all 0.3s ease;
           }
           .card-3d:hover {
-            transform: translateY(-8px) perspective(1200px) rotateX(5deg) rotateY(0deg);
-            animation: glow 2s ease-in-out;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(220, 38, 38, 0.15);
           }
           .department-card {
             position: relative;
@@ -698,7 +964,36 @@ const Dashboard = () => {
           </div>
           <Button
             variant="outline"
-            onClick={() => window.print()}
+            onClick={() => {
+              try {
+                const htmlContent = getExpiredAntivirusPrintHTML();
+                console.log('Expired Antivirus HTML Content Length:', htmlContent.length);
+                
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const printWindow = window.open(url, '_blank', 'width=1000,height=600');
+                
+                if (printWindow) {
+                  setTimeout(() => {
+                    printWindow.focus();
+                    printWindow.print();
+                  }, 800);
+                } else {
+                  toast({
+                    title: "Error",
+                    description: "Print window blocked. Please allow pop-ups.",
+                    variant: "destructive",
+                  });
+                }
+              } catch (error) {
+                console.error('Print Error:', error);
+                toast({
+                  title: "Error",
+                  description: "Failed to generate print document",
+                  variant: "destructive",
+                });
+              }
+            }}
             className="border-red-200 text-red-700 hover:bg-red-50 no-print"
           >
             <Printer className="h-4 w-4 mr-2" />
@@ -747,6 +1042,76 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Search and Filter Section */}
+        <Card className="border-red-200 bg-gradient-to-r from-red-50 to-orange-50">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <Label htmlFor="antivirus-search" className="text-sm font-semibold text-red-700 mb-2 block">
+                  Search by Name, Email, IP
+                </Label>
+                <input
+                  id="antivirus-search"
+                  type="text"
+                  placeholder="Search..."
+                  value={antivirusSearchText}
+                  onChange={(e) => setAntivirusSearchText(e.target.value)}
+                  className="w-full px-3 py-2 border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+              <div>
+                <Label htmlFor="antivirus-unit" className="text-sm font-semibold text-red-700 mb-2 block">
+                  Unit/Office
+                </Label>
+                <select
+                  id="antivirus-unit"
+                  value={antivirusFilterUnit}
+                  onChange={(e) => setAntivirusFilterUnit(e.target.value)}
+                  className="w-full px-3 py-2 border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="all">All Units</option>
+                  {Object.keys(expiredByUnitAndDept).sort().map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="antivirus-device" className="text-sm font-semibold text-red-700 mb-2 block">
+                  Device Type
+                </Label>
+                <select
+                  id="antivirus-device"
+                  value={antivirusFilterDevice}
+                  onChange={(e) => setAntivirusFilterDevice(e.target.value)}
+                  className="w-full px-3 py-2 border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="all">All Devices</option>
+                  <option value="laptop">Laptop</option>
+                  <option value="desktop">Desktop</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={() => {
+                    setAntivirusSearchText("");
+                    setAntivirusFilterUnit("all");
+                    setAntivirusFilterDevice("all");
+                  }}
+                  variant="outline"
+                  className="w-full border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+            {(antivirusSearchText || antivirusFilterUnit !== "all" || antivirusFilterDevice !== "all") && (
+              <div className="mt-3 text-sm text-red-700 bg-white/50 p-2 rounded">
+                Showing {filteredCount} of {totalExpired} devices
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Units with Departments */}
         <div className="space-y-6">
           {Object.entries(expiredByUnitAndDept).length === 0 ? (
@@ -757,7 +1122,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           ) : (
-            Object.entries(expiredByUnitAndDept).map(([unit, deptMap]: [string, any]) => (
+            Object.entries(filteredByUnitAndDept).map(([unit, deptMap]: [string, any]) => (
               <Card key={unit} className="border-red-200 bg-white/90 backdrop-blur-sm card-3d overflow-hidden">
                 <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-rose-500 text-white pb-4">
                   <CardTitle className="text-xl flex items-center gap-3">
@@ -791,61 +1156,174 @@ const Dashboard = () => {
                                   {asset.device_type || 'N/A'}
                                 </span>
                               </div>
-                              <div className="text-xs text-gray-600 mb-2">
+                              <div className="text-xs text-gray-600 mb-3">
                                 {asset.designation || 'N/A'}
                               </div>
 
-                              <div className="info-grid">
+                              <div className="space-y-2">
+                                {/* IP Address - Opens TightVNC Desktop App with Auto IP */}
                                 {asset.ip_no && (
-                                  <div className="info-item">
-                                    <div className="info-label">IP Address</div>
-                                    <div className="info-value">{asset.ip_no}</div>
-                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(asset.ip_no);
+                                      // Try multiple protocol handlers for TightVNC
+                                      try {
+                                        // Method 1: tvnc:// protocol
+                                        const iframe = document.createElement('iframe');
+                                        iframe.style.display = 'none';
+                                        iframe.src = `tvnc://${asset.ip_no}:5900`;
+                                        document.body.appendChild(iframe);
+                                        setTimeout(() => document.body.removeChild(iframe), 1000);
+                                        
+                                        // Method 2: Fallback - try vnc:// protocol
+                                        setTimeout(() => {
+                                          const iframe2 = document.createElement('iframe');
+                                          iframe2.style.display = 'none';
+                                          iframe2.src = `vnc://${asset.ip_no}:5900`;
+                                          document.body.appendChild(iframe2);
+                                          setTimeout(() => document.body.removeChild(iframe2), 1000);
+                                        }, 500);
+                                      } catch (e) {
+                                        console.log('Protocol handler error:', e);
+                                      }
+                                      toast({ title: 'TightVNC Opening', description: `IP ${asset.ip_no} - auto-filling and copied to clipboard` });
+                                    }}
+                                    className="w-full text-left p-2 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 hover:border-blue-400 transition text-xs cursor-pointer"
+                                    title="Click to open TightVNC with auto IP"
+                                  >
+                                    <div className="font-semibold text-blue-700">🌐 IP Address</div>
+                                    <div className="text-blue-600 font-mono break-all">{asset.ip_no}</div>
+                                  </button>
                                 )}
-                                {asset.ip_phone && (
-                                  <div className="info-item">
-                                    <div className="info-label">IP Phone</div>
-                                    <div className="info-value">{asset.ip_phone}</div>
-                                  </div>
-                                )}
-                                {asset.mobile && (
-                                  <div className="info-item">
-                                    <div className="info-label">Mobile</div>
-                                    <div className="info-value">{asset.mobile}</div>
-                                  </div>
-                                )}
-                                {asset.phone_no && (
-                                  <div className="info-item">
-                                    <div className="info-label">Phone</div>
-                                    <div className="info-value">{asset.phone_no}</div>
-                                  </div>
-                                )}
-                                {asset.email && (
-                                  <div className="info-item">
-                                    <div className="info-label">Email</div>
-                                    <div className="info-value" title={asset.email}>
-                                      {asset.email.length > 15 ? asset.email.substring(0, 15) + '...' : asset.email}
-                                    </div>
-                                  </div>
-                                )}
+
+                                {/* AnyDesk - Opens AnyDesk Desktop App with Auto ID */}
                                 {asset.anydesk_id && (
-                                  <div className="info-item">
-                                    <div className="info-label">AnyDesk</div>
-                                    <div className="info-value">{asset.anydesk_id}</div>
-                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(asset.anydesk_id);
+                                      // Try multiple ways to open AnyDesk with auto-connect
+                                      try {
+                                        // Method 1: anydesk://connect= protocol
+                                        const iframe = document.createElement('iframe');
+                                        iframe.style.display = 'none';
+                                        iframe.src = `anydesk://connect=${asset.anydesk_id}`;
+                                        document.body.appendChild(iframe);
+                                        setTimeout(() => document.body.removeChild(iframe), 1000);
+                                        
+                                        // Method 2: Fallback - try direct app open
+                                        setTimeout(() => {
+                                          const iframe2 = document.createElement('iframe');
+                                          iframe2.style.display = 'none';
+                                          iframe2.src = 'anydesk://';
+                                          document.body.appendChild(iframe2);
+                                          setTimeout(() => document.body.removeChild(iframe2), 1000);
+                                        }, 800);
+                                      } catch (e) {
+                                        console.log('Protocol handler error:', e);
+                                      }
+                                      toast({ title: 'AnyDesk Opening', description: `ID ${asset.anydesk_id} - auto-connecting and copied to clipboard` });
+                                    }}
+                                    className="w-full text-left p-2 bg-orange-50 hover:bg-orange-100 rounded border border-orange-200 hover:border-orange-400 transition text-xs cursor-pointer"
+                                    title="Click to open AnyDesk with auto ID"
+                                  >
+                                    <div className="font-semibold text-orange-700">🔴 AnyDesk ID</div>
+                                    <div className="text-orange-600 font-mono break-all">{asset.anydesk_id}</div>
+                                  </button>
                                 )}
-                                {asset.ultraview_id && (
-                                  <div className="info-item">
-                                    <div className="info-label">Ultraview</div>
-                                    <div className="info-value">{asset.ultraview_id}</div>
-                                  </div>
+
+                                {/* Full Email - Click to Open Email Client */}
+                                {asset.email && (
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(asset.email);
+                                      // Try to open email client
+                                      try {
+                                        const mailLink = document.createElement('a');
+                                        mailLink.href = `mailto:${asset.email}`;
+                                        document.body.appendChild(mailLink);
+                                        mailLink.click();
+                                        document.body.removeChild(mailLink);
+                                      } catch (e) {
+                                        console.log('Email client error:', e);
+                                      }
+                                      toast({ title: 'Email Opening', description: `${asset.email} - copied and opening email client` });
+                                    }}
+                                    className="w-full text-left p-2 bg-purple-50 hover:bg-purple-100 rounded border border-purple-200 hover:border-purple-400 transition text-xs cursor-pointer"
+                                    title="Click to open email client"
+                                  >
+                                    <div className="font-semibold text-purple-700">✉️ Email</div>
+                                    <div className="text-purple-600 font-mono break-all">{asset.email}</div>
+                                  </button>
                                 )}
-                                {asset.antivirus_code && (
-                                  <div className="info-item">
-                                    <div className="info-label">AV Code</div>
-                                    <div className="info-value font-bold text-red-700">{asset.antivirus_code}</div>
-                                  </div>
-                                )}
+
+                                {/* Other Contact Info */}
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  {asset.ip_phone && (
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(asset.ip_phone);
+                                        toast({ title: 'IP Phone Copied', description: `${asset.ip_phone}` });
+                                      }}
+                                      className="p-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-400 transition text-left cursor-pointer"
+                                      title="Click to copy IP Phone"
+                                    >
+                                      <div className="font-semibold text-gray-700">☎️ IP Phone</div>
+                                      <div className="text-gray-600 font-mono">{asset.ip_phone}</div>
+                                    </button>
+                                  )}
+                                  {asset.mobile && (
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(asset.mobile);
+                                        toast({ title: 'Mobile Copied', description: `${asset.mobile}` });
+                                      }}
+                                      className="p-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-400 transition text-left cursor-pointer"
+                                      title="Click to copy mobile number"
+                                    >
+                                      <div className="font-semibold text-gray-700">📱 Mobile</div>
+                                      <div className="text-gray-600 font-mono">{asset.mobile}</div>
+                                    </button>
+                                  )}
+                                  {asset.phone_no && (
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(asset.phone_no);
+                                        toast({ title: 'Phone Copied', description: `${asset.phone_no}` });
+                                      }}
+                                      className="p-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-400 transition text-left cursor-pointer"
+                                      title="Click to copy phone number"
+                                    >
+                                      <div className="font-semibold text-gray-700">📞 Phone</div>
+                                      <div className="text-gray-600 font-mono">{asset.phone_no}</div>
+                                    </button>
+                                  )}
+                                  {asset.ultraview_id && (
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(asset.ultraview_id);
+                                        toast({ title: 'Ultraview ID Copied', description: `${asset.ultraview_id}` });
+                                      }}
+                                      className="p-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 hover:border-gray-400 transition text-left cursor-pointer"
+                                      title="Click to copy Ultraview ID"
+                                    >
+                                      <div className="font-semibold text-gray-700">👁️ Ultraview</div>
+                                      <div className="text-gray-600 font-mono">{asset.ultraview_id}</div>
+                                    </button>
+                                  )}
+                                  {asset.antivirus_code && (
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(asset.antivirus_code);
+                                        toast({ title: 'Antivirus Key Copied', description: `${asset.antivirus_code}` });
+                                      }}
+                                      className="p-2 bg-red-50 rounded border border-red-200 hover:bg-red-100 hover:border-red-400 transition col-span-2 text-left cursor-pointer"
+                                      title="Click to copy antivirus key"
+                                    >
+                                      <div className="font-semibold text-red-700">🔐 AV Code</div>
+                                      <div className="text-red-600 font-mono font-bold">{asset.antivirus_code}</div>
+                                    </button>
+                                  )}
+                                </div>
                               </div>
 
                               {asset.antivirus_validity && (

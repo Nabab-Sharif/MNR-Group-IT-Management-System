@@ -921,6 +921,38 @@ class DBService {
     async deleteCCTVChecklist(id) {
         return await indexedDB.delete('cctv_checklists', id);
     }
+
+    // Peripherals CRUD
+    async getPeripherals() {
+        return await indexedDB.getAll('peripherals');
+    }
+
+    async addPeripheral(peripheral) {
+        const newPeripheral = {
+            ...peripheral,
+            id: Date.now(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+        return await indexedDB.add('peripherals', newPeripheral);
+    }
+
+    async updatePeripheral(id, updates) {
+        const peripheral = await indexedDB.get('peripherals', id);
+        if (peripheral) {
+            const updatedPeripheral = {
+                ...peripheral,
+                ...updates,
+                updated_at: new Date().toISOString(),
+            };
+            return await indexedDB.put('peripherals', updatedPeripheral);
+        }
+        return null;
+    }
+
+    async deletePeripheral(id) {
+        return await indexedDB.delete('peripherals', id);
+    }
 }
 
 export default new DBService();

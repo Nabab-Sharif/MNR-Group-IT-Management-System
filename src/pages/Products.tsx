@@ -61,7 +61,9 @@ const Products = () => {
     brand: "",
     purchase_date: "",
     warranty: "",
-    unit: ""
+    unit: "",
+    email: "",
+    email_password: ""
   });
 
   const [categorySearch, setCategorySearch] = useState("");
@@ -188,7 +190,9 @@ const Products = () => {
       brand: "",
       purchase_date: "",
       warranty: "",
-      unit: ""
+      unit: "",
+      email: "",
+      email_password: ""
     });
     setEditingProduct(null);
     setIsAddDialogOpen(false);
@@ -826,6 +830,26 @@ const Products = () => {
                     placeholder="e.g., 2 years"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    placeholder="e.g., user@example.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email_password">Email Password</Label>
+                  <Input
+                    id="email_password"
+                    type="text"
+                    value={formData.email_password}
+                    onChange={(e) => setFormData({...formData, email_password: e.target.value})}
+                    placeholder="Email password"
+                  />
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={resetForm}>
@@ -1142,6 +1166,42 @@ const Products = () => {
                                 <span className="font-medium">{product.unit}</span>
                               </div>
                             )}
+                            {product.email && (
+                              <div className="flex items-center justify-between bg-green-50 p-2 rounded border border-green-200">
+                                <span className="text-muted-foreground text-xs">Email:</span>
+                                <button 
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(product.email);
+                                    toast({
+                                      title: "Copied",
+                                      description: "Email copied to clipboard"
+                                    });
+                                  }}
+                                  className="text-green-700 hover:text-green-900 font-medium text-xs cursor-pointer truncate"
+                                  title={product.email}
+                                >
+                                  {product.email}
+                                </button>
+                              </div>
+                            )}
+                            {product.email_password && (
+                              <div className="flex items-center justify-between bg-orange-50 p-2 rounded border border-orange-200">
+                                <span className="text-muted-foreground text-xs">Password:</span>
+                                <button 
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(product.email_password);
+                                    toast({
+                                      title: "Copied",
+                                      description: "Password copied to clipboard"
+                                    });
+                                  }}
+                                  className="text-orange-700 hover:text-orange-900 font-medium text-xs cursor-pointer"
+                                  title={product.email_password}
+                                >
+                                  {product.email_password}
+                                </button>
+                              </div>
+                            )}
                             <div className="flex gap-2 pt-2">
                               <Button size="sm" variant="outline" onClick={() => handleEdit(product)} className="flex-1">
                                 <Edit className="h-3 w-3 mr-1" />
@@ -1215,6 +1275,42 @@ const Products = () => {
                         <div className="flex items-center justify-between">
                           <span className="text-gray-600">Serial:</span>
                           <span className="font-medium text-xs">{product.serial}</span>
+                        </div>
+                      )}
+                      {product.email && (
+                        <div className="flex items-center justify-between bg-green-50 p-2 rounded border border-green-200">
+                          <span className="text-gray-600 text-xs">Email:</span>
+                          <button 
+                            onClick={() => {
+                              navigator.clipboard.writeText(product.email);
+                              toast({
+                                title: "Copied",
+                                description: "Email copied to clipboard"
+                              });
+                            }}
+                            className="text-green-700 hover:text-green-900 font-medium text-xs cursor-pointer truncate"
+                            title={product.email}
+                          >
+                            {product.email}
+                          </button>
+                        </div>
+                      )}
+                      {product.email_password && (
+                        <div className="flex items-center justify-between bg-orange-50 p-2 rounded border border-orange-200">
+                          <span className="text-gray-600 text-xs">Password:</span>
+                          <button 
+                            onClick={() => {
+                              navigator.clipboard.writeText(product.email_password);
+                              toast({
+                                title: "Copied",
+                                description: "Password copied to clipboard"
+                              });
+                            }}
+                            className="text-orange-700 hover:text-orange-900 font-medium text-xs cursor-pointer"
+                            title={product.email_password}
+                          >
+                            {product.email_password}
+                          </button>
                         </div>
                       )}
                       {product.purchase_date && (

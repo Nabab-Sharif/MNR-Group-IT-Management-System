@@ -9,6 +9,8 @@ import Dashboard from "./pages/Dashboard";
 import Departments from "./pages/Departments";
 import Accessories from "./pages/Accessories";
 import Products from "./pages/Products";
+import Peripherals from "./pages/Peripherals";
+import EquipmentReturn from "./pages/EquipmentReturn";
 import UserProfiles from "./pages/UserProfiles";
 import Printers from "./pages/Printers";
 import IPPhoneList from "./pages/IPPhoneList";
@@ -43,6 +45,8 @@ const App = () => (
               <Route path="/cctv-checklist" element={<CCTVCheckList />} />
               <Route path="/switch-mapping" element={<SwitchPortMapping />} />
               <Route path="/products" element={<Products />} />
+              <Route path="/peripherals" element={<Peripherals />} />
+              <Route path="/equipment-return" element={<EquipmentReturn />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/user-profiles" element={<UserProfiles />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

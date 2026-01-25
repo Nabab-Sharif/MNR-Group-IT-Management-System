@@ -80,6 +80,9 @@ class IndexedDBService {
         if (!db.objectStoreNames.contains('switch_gates')) {
           db.createObjectStore('switch_gates', { keyPath: 'id' });
         }
+        if (!db.objectStoreNames.contains('peripherals')) {
+          db.createObjectStore('peripherals', { keyPath: 'id' });
+        }
       };
     });
   }

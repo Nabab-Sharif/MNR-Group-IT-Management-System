@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Plus, Edit, Trash2, ArrowLeft, Printer, Calendar, Eye, Server, ClipboardCheck, Settings2, Type, Columns, WrapText, Merge, FileSpreadsheet, Search, Filter, X, SplitSquareHorizontal, AlertTriangle, CheckCircle } from "lucide-react";
+import { Camera, Plus, Edit, Trash2, ArrowLeft, Printer, Calendar, Eye, Server, ClipboardCheck, Settings2, Type, Columns, WrapText, Merge, FileSpreadsheet, Search, Filter, X, SplitSquareHorizontal, AlertTriangle, CheckCircle, Download, Upload } from "lucide-react";
 import dbService from "@/services/dbService";
 import CCTVChecklistPrintCard from "@/components/CCTVChecklistPrintCard";
 
@@ -80,6 +80,13 @@ const CCTVCheckList = () => {
   const [isIssuesViewOpen, setIsIssuesViewOpen] = useState(false);
   const [editingNvr, setEditingNvr] = useState<NVR | null>(null);
   const [editingCameraIndex, setEditingCameraIndex] = useState<number | null>(null);
+
+  // Delete confirmation state
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{ open: boolean; checklistId: number | null; date: string }>({
+    open: false,
+    checklistId: null,
+    date: "",
+  });
 
   // Filter & Search states
   const [searchNvr, setSearchNvr] = useState("");
@@ -656,6 +663,180 @@ const CCTVCheckList = () => {
       await loadData();
       toast({ title: "Checklist Deleted", description: "Checklist has been deleted." });
     }
+  };
+
+  const handleDeleteChecklistWithConfirm = async (id: number) => {
+    const checklist = checklists.find(c => c.id === id);
+    if (!checklist) return;
+    
+    setDeleteConfirmDialog({
+      open: true,
+      checklistId: id,
+      date: formatDate(checklist.date),
+    });
+  };
+
+  const confirmDeleteChecklist = async () => {
+    if (!deleteConfirmDialog.checklistId) return;
+
+    try {
+      await dbService.deleteCCTVChecklist(deleteConfirmDialog.checklistId);
+      await loadData();
+      toast({ title: "Success", description: "Checklist has been deleted successfully." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete checklist.", variant: "destructive" });
+    }
+
+    setDeleteConfirmDialog({ open: false, checklistId: null, date: "" });
+  };
+
+  const handleDeleteFilteredChecklists = () => {
+    // Get the filtered checklists for the current NVR
+    const filteredChecklists = selectedNvr 
+      ? getNvrChecklists(selectedNvr.id).filter(c => {
+          if (filterDateFrom && c.date < filterDateFrom) return false;
+          if (filterDateTo && c.date > filterDateTo) return false;
+          return true;
+        })
+      : checklists.filter(c => {
+          if (filterDateFrom && c.date < filterDateFrom) return false;
+          if (filterDateTo && c.date > filterDateTo) return false;
+          return true;
+        });
+
+    if (filteredChecklists.length === 0) {
+      toast({ title: "No Data", description: "No checklists to delete.", variant: "destructive" });
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete ${filteredChecklists.length} checklist(s)? This action cannot be undone.`)) {
+      deleteFilteredChecklists(filteredChecklists);
+    }
+  };
+
+  const deleteFilteredChecklists = async (checklistsToDelete: DailyChecklist[]) => {
+    try {
+      for (const checklist of checklistsToDelete) {
+        await dbService.deleteCCTVChecklist(checklist.id);
+      }
+      await loadData();
+      toast({ 
+        title: "Success", 
+        description: `${checklistsToDelete.length} checklist(s) have been deleted successfully.` 
+      });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete checklists.", variant: "destructive" });
+    }
+  };
+
+  const handleExportChecklists = () => {
+    try {
+      // Get filtered checklists for the current NVR with date range filter
+      const checklistsToExport = selectedNvr 
+        ? getNvrChecklists(selectedNvr.id).filter(c => {
+            if (filterDateFrom && c.date < filterDateFrom) return false;
+            if (filterDateTo && c.date > filterDateTo) return false;
+            return true;
+          })
+        : checklists.filter(c => {
+            if (filterDateFrom && c.date < filterDateFrom) return false;
+            if (filterDateTo && c.date > filterDateTo) return false;
+            return true;
+          });
+
+      if (checklistsToExport.length === 0) {
+        toast({ title: "No Data", description: "No checklists to export.", variant: "destructive" });
+        return;
+      }
+
+      const exportData = {
+        timestamp: new Date().toISOString(),
+        nvr: selectedNvr ? { id: selectedNvr.id, nvr_number: selectedNvr.nvr_number, name: selectedNvr.name } : null,
+        checklistsCount: checklistsToExport.length,
+        dateRangeFilter: {
+          from: filterDateFrom || "any",
+          to: filterDateTo || "any",
+        },
+        checklists: checklistsToExport,
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateRange = filterDateFrom && filterDateTo 
+        ? `_${filterDateFrom}_to_${filterDateTo}`
+        : filterDateFrom
+        ? `_from_${filterDateFrom}`
+        : filterDateTo
+        ? `_to_${filterDateTo}`
+        : "";
+      const fileName = selectedNvr 
+        ? `CCTV_Checklists_NVR-${selectedNvr.nvr_number}${dateRange}_${new Date().toISOString().split('T')[0]}.json`
+        : `CCTV_Checklists_All${dateRange}_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({ 
+        title: "Export Successful", 
+        description: `${checklistsToExport.length} checklist(s) exported successfully.` 
+      });
+    } catch (error) {
+      toast({ title: "Export Failed", description: "Failed to export checklists.", variant: "destructive" });
+    }
+  };
+
+  const handleImportChecklists = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const content = await file.text();
+      const importData = JSON.parse(content);
+
+      if (!importData.checklists || !Array.isArray(importData.checklists)) {
+        toast({ title: "Invalid File", description: "The file does not contain valid checklist data.", variant: "destructive" });
+        return;
+      }
+
+      if (importData.nvr && selectedNvr && importData.nvr.id !== selectedNvr.id) {
+        toast({ 
+          title: "NVR Mismatch", 
+          description: `This file contains checklists for NVR-${importData.nvr.nvr_number}, but you're viewing NVR-${selectedNvr.nvr_number}.`, 
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      let importedCount = 0;
+      for (const checklist of importData.checklists) {
+        try {
+          // Check if checklist already exists (by date and nvr_id)
+          const exists = checklists.some(c => c.nvr_id === checklist.nvr_id && c.date === checklist.date);
+          if (!exists) {
+            await dbService.addCCTVChecklist(checklist);
+            importedCount++;
+          }
+        } catch (err) {
+          console.error('Error importing checklist:', err);
+        }
+      }
+
+      await loadData();
+      toast({ 
+        title: "Import Successful", 
+        description: `${importedCount} checklist(s) imported successfully.` 
+      });
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({ title: "Import Failed", description: "Failed to import checklists. Please check the file format.", variant: "destructive" });
+    }
+
+    // Reset file input
+    event.target.value = '';
   };
 
   const handleDeleteNvr = async (id: number) => {
@@ -1647,7 +1828,80 @@ const CCTVCheckList = () => {
           </CardTitle>
           <CardDescription>View all daily camera check reports</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Filter and Export/Import Section */}
+          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 bg-muted/50 rounded-lg">
+            <div>
+              <Label htmlFor="checklist_date_from" className="text-xs mb-1 block">From Date</Label>
+              <Input
+                id="checklist_date_from"
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <div>
+              <Label htmlFor="checklist_date_to" className="text-xs mb-1 block">To Date</Label>
+              <Input
+                id="checklist_date_to"
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => setFilterDateTo(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <div className="flex gap-2 items-end">
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => {
+                  setFilterDateFrom("");
+                  setFilterDateTo("");
+                }}
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+              <Button 
+                size="sm"
+                variant="destructive"
+                onClick={() => handleDeleteFilteredChecklists()}
+                disabled={!filterDateFrom && !filterDateTo}
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Delete Filtered
+              </Button>
+            </div>
+            <div className="flex gap-2 items-end">
+              <Button 
+                size="sm"
+                variant="outline"
+                onClick={() => handleExportChecklists()}
+              >
+                <Download className="h-3 w-3 mr-1" />
+                Export
+              </Button>
+            </div>
+            <div className="flex gap-2 items-end">
+              <input
+                type="file"
+                id="import-checklists"
+                accept=".json"
+                style={{ display: 'none' }}
+                onChange={handleImportChecklists}
+              />
+              <Button 
+                size="sm"
+                variant="outline"
+                onClick={() => document.getElementById('import-checklists')?.click()}
+              >
+                <Upload className="h-3 w-3 mr-1" />
+                Import
+              </Button>
+            </div>
+          </div>
+
           {nvrChecklists.length > 0 ? (
             <Table>
               <TableHeader>
@@ -1659,7 +1913,11 @@ const CCTVCheckList = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {nvrChecklists.map((checklist) => (
+                {nvrChecklists.filter(c => {
+                  if (filterDateFrom && c.date < filterDateFrom) return false;
+                  if (filterDateTo && c.date > filterDateTo) return false;
+                  return true;
+                }).map((checklist) => (
                   <TableRow key={checklist.id}>
                     <TableCell className="font-medium">{formatDate(checklist.date)}</TableCell>
                     <TableCell>
@@ -1687,7 +1945,7 @@ const CCTVCheckList = () => {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleDeleteChecklist(checklist.id)}
+                          onClick={() => handleDeleteChecklistWithConfirm(checklist.id)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -2009,6 +2267,39 @@ const CCTVCheckList = () => {
                 Save Checklist
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteConfirmDialog({ open: false, checklistId: null, date: "" });
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Checklist
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the checklist from <span className="font-semibold text-foreground">{deleteConfirmDialog.date}</span>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmDialog({ open: false, checklistId: null, date: "" })}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteChecklist}
+            >
+              Delete Checklist
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

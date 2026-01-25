@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,7 +32,8 @@ import {
   Filter,
   Camera,
   Image as ImageIcon,
-  X
+  X,
+  Building2
 } from "lucide-react";
 import dbService from "@/services/dbService";
 
@@ -72,6 +74,7 @@ const Accessories = () => {
     employee_name: "",
     designation: "",
     email: "",
+    email_password: "",
     device_type: "",
     specification: "",
     mobile: "",
@@ -90,13 +93,37 @@ const Accessories = () => {
     peripherals: [],
     purchase_date: "",
     remarks: "",
-    picture: ""
+    picture: "",
+    // Department Submitting Info
+    dept_name: "",
+    dept_submitted_by: "",
+    dept_designation: "",
+    dept_mobile: "",
+    dept_signature: "",
+    dept_date: new Date().toISOString().split('T')[0],
+    // IT Department Receiving Info
+    it_received_by_1: "",
+    it_designation_1: "",
+    it_mobile_1: "",
+    it_received_by_2: "",
+    it_designation_2: "",
+    it_mobile_2: "",
+    it_receiving_date: new Date().toISOString().split('T')[0],
+    it_signature: ""
   });
 
   const [peripheralForm, setPeripheralForm] = useState({
+    sl_no: "",
+    equipment_name: "",
+    brand_model: "",
+    serial_number: "",
+    exchange_reason: "",
+    return_date: new Date().toISOString().split('T')[0],
+    remarks: "",
+    assigned_it_person: "",
+    assigned_at: null,
     product_type: "",
     exchange_date: new Date().toISOString().slice(0, 16),
-    exchange_reason: "",
     quantity: 1,
     exchange_history: []
   });
@@ -105,6 +132,15 @@ const Accessories = () => {
   const [showCameraDialog, setShowCameraDialog] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
   const [facingMode, setFacingMode] = useState("user");
+  const [selectedITPerson, setSelectedITPerson] = useState(null);
+  const [itPersonsList, setItPersonsList] = useState([]);
+  const [editingITPersonIndex, setEditingITPersonIndex] = useState(null);
+  const [showITPersonDialog, setShowITPersonDialog] = useState(false);
+  const [itPersonForm, setItPersonForm] = useState({
+    name: "",
+    designation: "",
+    receiving_date: ""
+  });
 
   useEffect(() => {
     loadData();
@@ -115,6 +151,16 @@ const Accessories = () => {
     const usersData = await dbService.getUsers();
     const departmentsData = await dbService.getDepartments();
     const unitsData = await dbService.getUnits();
+    
+    // Load IT Persons from localStorage
+    const savedITPersons = localStorage.getItem('mnr_it_persons');
+    if (savedITPersons) {
+      try {
+        setItPersonsList(JSON.parse(savedITPersons));
+      } catch (error) {
+        console.error('Error loading IT Persons:', error);
+      }
+    }
     
     setAccessories(accessoriesData);
     setUsers(usersData);
@@ -184,6 +230,7 @@ const Accessories = () => {
       employee_name: "",
       designation: "",
       email: "",
+      email_password: "",
       device_type: "",
       specification: "",
       mobile: "",
@@ -202,16 +249,40 @@ const Accessories = () => {
       peripherals: [],
       purchase_date: "",
       remarks: "",
-      picture: ""
+      picture: "",
+      // Department Submitting Info
+      dept_name: "",
+      dept_submitted_by: "",
+      dept_designation: "",
+      dept_mobile: "",
+      dept_signature: "",
+      dept_date: new Date().toISOString().split('T')[0],
+      // IT Department Receiving Info
+      it_received_by_1: "",
+      it_designation_1: "",
+      it_mobile_1: "",
+      it_received_by_2: "",
+      it_designation_2: "",
+      it_mobile_2: "",
+      it_receiving_date: new Date().toISOString().split('T')[0],
+      it_signature: ""
     });
     setEditingAccessory(null);
   };
 
   const resetPeripheralForm = () => {
     setPeripheralForm({
+      sl_no: "",
+      equipment_name: "",
+      brand_model: "",
+      serial_number: "",
+      exchange_reason: "",
+      return_date: new Date().toISOString().split('T')[0],
+      remarks: "",
+      assigned_it_person: "",
+      assigned_at: null,
       product_type: "",
       exchange_date: new Date().toISOString().slice(0, 16),
-      exchange_reason: "",
       quantity: 1,
       exchange_history: []
     });
@@ -229,6 +300,7 @@ const Accessories = () => {
     }
 
     const currentDate = new Date().toISOString().slice(0, 16);
+    const timestamp = new Date().toISOString();
     const exchangeEntry = {
       date: peripheralForm.exchange_date || currentDate,
       reason: peripheralForm.exchange_reason
@@ -244,7 +316,9 @@ const Accessories = () => {
       updatedPeripherals[editingPeripheralIndex] = {
         ...peripheralForm,
         exchange_history: updatedHistory,
-        exchange_date: peripheralForm.exchange_date || currentDate
+        exchange_date: peripheralForm.exchange_date || currentDate,
+        // Add timestamp if IT Person is assigned and not already set
+        assigned_at: peripheralForm.assigned_it_person && !peripheralForm.assigned_at ? timestamp : peripheralForm.assigned_at
       };
       
       setFormData({ ...formData, peripherals: updatedPeripherals });
@@ -256,7 +330,9 @@ const Accessories = () => {
       const newPeripheral = {
         ...peripheralForm,
         exchange_date: peripheralForm.exchange_date || currentDate,
-        exchange_history: [exchangeEntry]
+        exchange_history: [exchangeEntry],
+        // Add timestamp if IT Person is assigned
+        assigned_at: peripheralForm.assigned_it_person ? timestamp : null
       };
       setFormData({ ...formData, peripherals: [...formData.peripherals, newPeripheral] });
       toast({
@@ -275,13 +351,661 @@ const Accessories = () => {
     setShowPeripheralDialog(true);
   };
 
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, index: null });
+
   const handleDeletePeripheral = (index) => {
-    const updatedPeripherals = formData.peripherals.filter((_, i) => i !== index);
-    setFormData({ ...formData, peripherals: updatedPeripherals });
+    setDeleteConfirm({ open: true, index });
+  };
+
+  const confirmDeletePeripheral = () => {
+    if (deleteConfirm.index !== null) {
+      const deletedPeripheral = formData.peripherals[deleteConfirm.index];
+      const updatedPeripherals = formData.peripherals.filter((_, i) => i !== deleteConfirm.index);
+      setFormData({ ...formData, peripherals: updatedPeripherals });
+      setDeleteConfirm({ open: false, index: null });
+      toast({
+        title: "Peripheral deleted",
+        description: `${deletedPeripheral.equipment_name || 'Item'} has been removed successfully.`,
+      });
+    }
+  };
+
+  const handleAddITPerson = () => {
+    if (!itPersonForm.name || !itPersonForm.designation) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in Name and Designation",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    let updatedList;
+    if (editingITPersonIndex !== null) {
+      // Edit existing
+      updatedList = [...itPersonsList];
+      updatedList[editingITPersonIndex] = itPersonForm;
+      setItPersonsList(updatedList);
+      toast({
+        title: "IT Person updated",
+        description: "IT Person information has been updated successfully.",
+      });
+      setEditingITPersonIndex(null);
+    } else {
+      // Add new
+      updatedList = [...itPersonsList, itPersonForm];
+      setItPersonsList(updatedList);
+      toast({
+        title: "IT Person added",
+        description: "New IT Person has been added successfully.",
+      });
+    }
+
+    // Save to localStorage
+    localStorage.setItem('mnr_it_persons', JSON.stringify(updatedList));
+    setItPersonForm({ name: "", designation: "", receiving_date: "" });
+  };
+
+  const handleEditITPerson = (index) => {
+    setItPersonForm(itPersonsList[index]);
+    setEditingITPersonIndex(index);
+  };
+
+  const handleDeleteITPerson = (index) => {
+    const updatedList = itPersonsList.filter((_, i) => i !== index);
+    setItPersonsList(updatedList);
+    // Save to localStorage
+    localStorage.setItem('mnr_it_persons', JSON.stringify(updatedList));
     toast({
-      title: "Peripheral deleted",
-      description: "Peripheral has been removed successfully.",
+      title: "IT Person deleted",
+      description: "IT Person has been removed successfully.",
     });
+  };
+
+  const handlePrintPeripheral = (peripheral) => {
+    try {
+      // Get IT Person info from assigned_it_person
+      const itPersonName = peripheral.assigned_it_person || "---";
+      const itPersonDetails = itPersonsList.find(p => p.name === itPersonName) || {};
+
+      const printHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Peripheral Equipment Return Form</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            @page {
+              size: A4;
+              margin: 0.3in 0.5in;
+            }
+            html, body {
+              width: 210mm;
+              height: 297mm;
+              margin: 0;
+              padding: 0;
+            }
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              background-color: white;
+              color: #333;
+            }
+            .container {
+              padding: 25px;
+              height: 100%;
+              background-color: white;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 25px;
+              padding-bottom: 15px;
+              border-bottom: 4px solid #0284c7;
+            }
+            .company-name {
+              font-size: 22px;
+              font-weight: 800;
+              color: #0284c7;
+              margin-bottom: 8px;
+              letter-spacing: 1px;
+              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            .form-title {
+              font-size: 15px;
+              font-weight: 700;
+              color: #1f2937;
+              text-transform: uppercase;
+              letter-spacing: 1.2px;
+            }
+            .section-header {
+              background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+              color: white;
+              padding: 11px 14px;
+              margin-top: 18px;
+              margin-bottom: 11px;
+              font-size: 11px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 0.9px;
+              border-radius: 4px;
+              box-shadow: 0 3px 8px rgba(2, 132, 199, 0.25);
+            }
+            .info-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 15px;
+              border: 2px solid #0284c7;
+              border-radius: 4px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            }
+            .info-table th {
+              background-color: #0284c7;
+              color: white;
+              padding: 10px;
+              text-align: left;
+              font-size: 10px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 0.6px;
+            }
+            .info-table td {
+              padding: 10px;
+              border-bottom: 1px solid #ddd;
+              font-size: 12px;
+              color: #1f2937;
+            }
+            .info-table tbody tr:last-child td {
+              border-bottom: none;
+            }
+            .info-table tbody tr:nth-child(even) {
+              background-color: #f8fbff;
+            }
+            .label {
+              font-weight: 800;
+              width: 28%;
+              background-color: #dbeafe;
+              color: #0369a1;
+              border-right: 3px solid #0284c7;
+              font-size: 11px;
+            }
+            .value {
+              color: #1f2937;
+              word-wrap: break-word;
+              font-size: 12px;
+            }
+            .signature-space {
+              height: 55px;
+              background-color: #f9fafb;
+              border: 1px solid #d1d5db;
+              border-radius: 3px;
+              margin-top: 4px;
+            }
+            @media print {
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+              body {
+                background-color: white !important;
+                margin: 0;
+                padding: 0;
+              }
+              @page { margin: 0.3in 0.5in; }
+              .header {
+                background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+              }
+              .company-name,
+              .form-title {
+                color: #ffffff !important;
+              }
+              .section-header {
+                background-color: #0284c7 !important;
+                color: #ffffff !important;
+              }
+              .info-table {
+                color: #1f2937 !important;
+              }
+              .info-table tbody tr:nth-child(even) {
+                background-color: #f8fbff !important;
+              }
+              .label {
+                background-color: #dbeafe !important;
+                color: #0369a1 !important;
+                border-right: 3px solid #0284c7 !important;
+              }
+              .value {
+                color: #1f2937 !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="company-name">MNR Sweaters Ltd.</div>
+              <div class="form-title">Peripheral Equipment Return Form</div>
+            </div>
+
+                <div class="section-header">Equipment Information</div>
+                <table class="info-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 15%;">SL. No.</th>
+                      <th style="width: 20%;">Equipment Name</th>
+                      <th style="width: 20%;">Brand/Model</th>
+                      <th style="width: 20%;">Serial Number</th>
+                      <th style="width: 25%;">Exchange Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${peripheral.sl_no || '---'}</td>
+                      <td>${peripheral.equipment_name || '---'}</td>
+                      <td>${peripheral.brand_model || '---'}</td>
+                      <td>${peripheral.serial_number || '---'}</td>
+                      <td>${peripheral.exchange_reason || '---'}</td>
+                    </tr>
+                    <tr>
+                      <td colspan="5" style="padding: 5px;"><strong>Return Date:</strong> ${peripheral.return_date ? new Date(peripheral.return_date).toLocaleDateString() : '---'}</td>
+                    </tr>
+                    <tr>
+                      <td colspan="5" style="padding: 5px;"><strong>Remarks:</strong> ${peripheral.remarks || '---'}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-header">Department Submitting the Equipment</div>
+                <table class="info-table">
+                  <tbody>
+                    <tr>
+                      <td class="label">Department Name</td>
+                      <td class="value">${formData.division || '---'}</td>
+                    </tr>
+                    <tr>
+                      <td class="label">Submitted By (Employee Name)</td>
+                      <td class="value">${formData.employee_name || '---'}</td>
+                    </tr>
+                    <tr>
+                      <td class="label">Designation</td>
+                      <td class="value">${formData.designation || '---'}</td>
+                    </tr>
+                    <tr>
+                      <td class="label">Mobile/Extension</td>
+                      <td class="value">${formData.mobile || '---'}</td>
+                    </tr>
+                    <tr>
+                      <td class="label">Signature</td>
+                      <td class="value"><div class="signature-space"></div></td>
+                    </tr>
+                    <tr>
+                      <td class="label">Date</td>
+                      <td class="value">${new Date().toLocaleDateString()}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-header">IT Department Receiving Section</div>
+                <table class="info-table">
+                  <tbody>
+                    <tr>
+                      <td class="label">Received By (IT Person)</td>
+                      <td class="value">${itPersonName}</td>
+                    </tr>
+                    <tr>
+                      <td class="label">Designation</td>
+                      <td class="value">${itPersonDetails.designation || '---'}</td>
+                    </tr>
+                    <tr>
+                      <td class="label">Signature</td>
+                      <td class="value"><div class="signature-space"></div></td>
+                    </tr>
+                    <tr>
+                      <td class="label">Receiving Date</td>
+                      <td class="value">${new Date().toLocaleDateString()}</td>
+                    </tr>
+                  </tbody>
+                </table>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      const printWindow = window.open("", "_blank");
+      
+      if (!printWindow) {
+        toast({
+          title: "Error",
+          description: "Print window could not be opened. Please check your popup blocker settings.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      printWindow.document.write(printHTML);
+      printWindow.document.close();
+      
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+      }, 250);
+      
+      toast({
+        title: "Print dialog opened",
+        description: "Please complete the print process in the new window.",
+      });
+    } catch (error) {
+      console.error("Print error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to open print dialog",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDownloadPDF = (peripheral) => {
+    try {
+      // Get IT Person info from assigned_it_person
+      const itPersonName = peripheral.assigned_it_person || "---";
+      const itPersonDetails = itPersonsList.find(p => p.name === itPersonName) || {};
+
+      const printHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Peripheral Equipment Return Form</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            @page {
+              size: A4;
+              margin: 0.3in 0.5in;
+            }
+            html, body {
+              width: 210mm;
+              height: 297mm;
+              margin: 0;
+              padding: 0;
+            }
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              background-color: white;
+              color: #333;
+            }
+            .container {
+              padding: 25px;
+              height: 100%;
+              background-color: white;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 25px;
+              padding-bottom: 15px;
+              border-bottom: 4px solid #0284c7;
+            }
+            .company-name {
+              font-size: 22px;
+              font-weight: 800;
+              color: #0284c7;
+              margin-bottom: 8px;
+              letter-spacing: 1px;
+              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            .form-title {
+              font-size: 15px;
+              font-weight: 700;
+              color: #1f2937;
+              text-transform: uppercase;
+              letter-spacing: 1.2px;
+            }
+            .section-header {
+              background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+              color: white;
+              padding: 11px 14px;
+              margin-top: 18px;
+              margin-bottom: 11px;
+              font-size: 11px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 0.9px;
+              border-radius: 4px;
+              box-shadow: 0 3px 8px rgba(2, 132, 199, 0.25);
+            }
+            .info-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 15px;
+              border: 2px solid #0284c7;
+              border-radius: 4px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            }
+            .info-table th {
+              background-color: #0284c7;
+              color: white;
+              padding: 10px;
+              text-align: left;
+              font-size: 10px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 0.6px;
+            }
+            .info-table td {
+              padding: 10px;
+              border-bottom: 1px solid #ddd;
+              font-size: 12px;
+              color: #1f2937;
+            }
+            .info-table tbody tr:last-child td {
+              border-bottom: none;
+            }
+            .info-table tbody tr:nth-child(even) {
+              background-color: #f8fbff;
+            }
+            .label {
+              font-weight: 800;
+              width: 28%;
+              background-color: #dbeafe;
+              color: #0369a1;
+              border-right: 3px solid #0284c7;
+              font-size: 11px;
+            }
+            .value {
+              color: #1f2937;
+              word-wrap: break-word;
+              font-size: 12px;
+            }
+            .signature-space {
+              height: 55px;
+              background-color: #f9fafb;
+              border: 1px solid #d1d5db;
+              border-radius: 3px;
+              margin-top: 4px;
+            }
+            @media print {
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+              body {
+                background-color: white !important;
+                margin: 0;
+                padding: 0;
+              }
+              @page { margin: 0.3in 0.5in; }
+              .header {
+                background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+              }
+              .company-name,
+              .form-title {
+                color: #ffffff !important;
+              }
+              .section-header {
+                background-color: #0284c7 !important;
+                color: #ffffff !important;
+              }
+              .info-table {
+                color: #1f2937 !important;
+              }
+              .info-table th {
+                background-color: #0284c7 !important;
+                color: #ffffff !important;
+              }
+              .info-table tbody tr:nth-child(even) {
+                background-color: #f8fbff !important;
+              }
+              .label {
+                background-color: #dbeafe !important;
+                color: #0369a1 !important;
+                border-right: 3px solid #0284c7 !important;
+              }
+              .value {
+                color: #1f2937 !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="company-name">MNR Sweaters Ltd.</div>
+              <div class="form-title">Peripheral Equipment Return Form</div>
+            </div>
+
+            <div class="section-header">Equipment Information</div>
+            <table class="info-table">
+              <thead>
+                <tr>
+                  <th style="width: 15%;">SL. No.</th>
+                  <th style="width: 20%;">Equipment Name</th>
+                  <th style="width: 20%;">Brand/Model</th>
+                  <th style="width: 20%;">Serial Number</th>
+                  <th style="width: 25%;">Exchange Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${peripheral.sl_no || '---'}</td>
+                  <td>${peripheral.equipment_name || '---'}</td>
+                  <td>${peripheral.brand_model || '---'}</td>
+                  <td>${peripheral.serial_number || '---'}</td>
+                  <td>${peripheral.exchange_reason || '---'}</td>
+                </tr>
+                <tr>
+                  <td colspan="5" style="padding: 5px;"><strong>Return Date:</strong> ${peripheral.return_date ? new Date(peripheral.return_date).toLocaleDateString() : '---'}</td>
+                </tr>
+                <tr>
+                  <td colspan="5" style="padding: 5px;"><strong>Remarks:</strong> ${peripheral.remarks || '---'}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="section-header">Department Submitting the Equipment</div>
+            <table class="info-table">
+              <tbody>
+                <tr>
+                  <td class="label">Department Name</td>
+                  <td class="value">${formData.division || '---'}</td>
+                </tr>
+                <tr>
+                  <td class="label">Submitted By (Employee Name)</td>
+                  <td class="value">${formData.employee_name || '---'}</td>
+                </tr>
+                <tr>
+                  <td class="label">Designation</td>
+                  <td class="value">${formData.designation || '---'}</td>
+                </tr>
+                <tr>
+                  <td class="label">Mobile/Extension</td>
+                  <td class="value">${formData.mobile || '---'}</td>
+                </tr>
+                <tr>
+                  <td class="label">Signature</td>
+                  <td class="value"><div class="signature-space"></div></td>
+                </tr>
+                <tr>
+                  <td class="label">Date</td>
+                  <td class="value">${new Date().toLocaleDateString()}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="section-header">IT Department Receiving Section</div>
+            <table class="info-table">
+              <tbody>
+                <tr>
+                  <td class="label">Received By (IT Person)</td>
+                  <td class="value">${itPersonName}</td>
+                </tr>
+                <tr>
+                  <td class="label">Designation</td>
+                  <td class="value">${itPersonDetails.designation || '---'}</td>
+                </tr>
+                <tr>
+                  <td class="label">Signature</td>
+                  <td class="value"><div class="signature-space"></div></td>
+                </tr>
+                <tr>
+                  <td class="label">Receiving Date</td>
+                  <td class="value">${new Date().toLocaleDateString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Load html2pdf library dynamically
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.onload = () => {
+        // Create element to convert
+        const element = document.createElement('div');
+        element.innerHTML = printHTML;
+        
+        const opt = {
+          margin: [0.3, 0.5, 0.3, 0.5],
+          filename: `Peripheral_Form_${peripheral.equipment_name || 'Equipment'}_${new Date().getTime()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+        
+        // Use html2pdf to generate PDF
+        window.html2pdf().set(opt).from(element).save();
+        
+        toast({
+          title: "PDF Downloaded",
+          description: "Peripheral form downloaded as PDF.",
+        });
+      };
+      script.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to load PDF library",
+          variant: "destructive"
+        });
+      };
+      document.body.appendChild(script);
+    } catch (error) {
+      console.error("PDF download error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download PDF",
+        variant: "destructive"
+      });
+    }
   };
 
   const getPeripheralStats = () => {
@@ -304,9 +1028,28 @@ const Accessories = () => {
   const getFilteredAccessories = () => {
     let filtered = accessories;
     
-    // Apply category filter first
+    // Apply category filter
     if (filterCategory !== "all") {
-      filtered = dbService.getFilteredAssetsByCategory(filterCategory);
+      filtered = filtered.filter((accessory) => {
+        const deviceType = accessory.device_type?.toLowerCase() || "";
+        const status = accessory.status?.toLowerCase() || "";
+        const antivirusValidity = accessory.antivirus_validity;
+        
+        switch (filterCategory) {
+          case "laptops":
+            return deviceType.includes("laptop");
+          case "desktops":
+            return deviceType.includes("desktop");
+          case "in_repair":
+            return status === "in_repair" || status === "repair";
+          case "active":
+            return status === "active" || status === "in use";
+          case "expired_antivirus":
+            return antivirusValidity && new Date(antivirusValidity) < new Date();
+          default:
+            return true;
+        }
+      });
     }
     
     // Then apply search, department, and unit filters
@@ -753,10 +1496,23 @@ const Accessories = () => {
           <h1 className="text-3xl font-bold text-sky-800">IT Assets Management</h1>
           <p className="text-gray-600 mt-2">Manage and track all IT assets and devices</p>
         </div>
-        <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="bg-sky-600 hover:bg-sky-700 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Add IT Asset
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => {
+              setItPersonForm({ name: "", designation: "", receiving_date: "" });
+              setEditingITPersonIndex(null);
+              setShowITPersonDialog(true);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add IT Person
+          </Button>
+          <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="bg-sky-600 hover:bg-sky-700 text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            Add IT Asset
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -804,7 +1560,13 @@ const Accessories = () => {
                 <SelectItem value="expired_antivirus">Expired Antivirus</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterUnit} onValueChange={setFilterUnit}>
+            <Select value={filterUnit} onValueChange={(value) => {
+              setFilterUnit(value);
+              // Reset department filter when unit changes
+              if (value !== "all") {
+                setFilterDepartment("all");
+              }
+            }}>
               <SelectTrigger className="w-full sm:w-48 border-sky-200">
                 <SelectValue placeholder="Filter by Unit/Office" />
               </SelectTrigger>
@@ -821,9 +1583,24 @@ const Accessories = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
-                {departments.map(dept => (
-                  <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
-                ))}
+                {filterUnit !== "all" 
+                  ? (() => {
+                      // Get unique departments for the selected unit
+                      const unitAccessories = accessories.filter(a => a.unit_office === filterUnit);
+                      const unitDepartments = [...new Set(
+                        unitAccessories
+                          .map(a => a.division)
+                          .filter(d => d)
+                      )].sort();
+                      
+                      return unitDepartments.map(deptName => (
+                        <SelectItem key={deptName} value={deptName}>{deptName}</SelectItem>
+                      ));
+                    })()
+                  : departments.map(dept => (
+                      <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                    ))
+                }
               </SelectContent>
             </Select>
             <div className="flex gap-2">
@@ -1068,6 +1845,17 @@ const Accessories = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="border-sky-200 focus:border-sky-400"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="email_password">Email Password</Label>
+                <Input
+                  id="email_password"
+                  type="text"
+                  value={formData.email_password}
+                  onChange={(e) => setFormData({ ...formData, email_password: e.target.value })}
                   className="border-sky-200 focus:border-sky-400"
                 />
               </div>
@@ -1338,28 +2126,53 @@ const Accessories = () => {
                       </div>
                     </div>
                     
-                    <div className="border border-sky-200 rounded-lg overflow-hidden">
+                    <div className="border border-sky-200 rounded-lg overflow-hidden overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-sky-50">
-                            <TableHead className="text-sky-700">Product Type</TableHead>
-                            <TableHead className="text-sky-700">Quantity</TableHead>
-                            <TableHead className="text-sky-700">Exchange Date</TableHead>
-                            <TableHead className="text-sky-700">Actions</TableHead>
+                            <TableHead className="text-sky-700 whitespace-nowrap">SL. No.</TableHead>
+                            <TableHead className="text-sky-700 whitespace-nowrap">Equipment Name</TableHead>
+                            <TableHead className="text-sky-700 whitespace-nowrap">Brand/Model</TableHead>
+                            <TableHead className="text-sky-700 whitespace-nowrap">Serial No.</TableHead>
+                            <TableHead className="text-sky-700 whitespace-nowrap">Exchange Reason</TableHead>
+                            <TableHead className="text-sky-700 whitespace-nowrap">Return Date</TableHead>
+                            <TableHead className="text-sky-700 whitespace-nowrap">Actions</TableHead>
+                            <TableHead className="text-sky-700 whitespace-nowrap">IT Person</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {formData.peripherals.map((peripheral, index) => (
                             <TableRow key={index}>
-                              <TableCell className="capitalize font-medium">{peripheral.product_type}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{peripheral.quantity}</Badge>
-                              </TableCell>
-                              <TableCell className="text-sm">
-                                {new Date(peripheral.exchange_date).toLocaleString()}
+                              <TableCell className="font-medium whitespace-nowrap">{peripheral.sl_no || peripheral.product_type}</TableCell>
+                              <TableCell className="whitespace-nowrap">{peripheral.equipment_name || 'N/A'}</TableCell>
+                              <TableCell className="whitespace-nowrap">{peripheral.brand_model || 'N/A'}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap font-mono">{peripheral.serial_number || 'N/A'}</TableCell>
+                              <TableCell className="text-sm max-w-xs">{peripheral.exchange_reason || 'N/A'}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">
+                                {peripheral.return_date ? new Date(peripheral.return_date).toLocaleDateString() : 'N/A'}
                               </TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handlePrintPeripheral(peripheral)}
+                                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                                    title="Print peripheral details"
+                                  >
+                                    <Printer className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDownloadPDF(peripheral)}
+                                    className="border-red-200 text-red-700 hover:bg-red-50"
+                                    title="Download peripheral form as PDF"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
                                   <Button
                                     type="button"
                                     size="sm"
@@ -1369,6 +2182,20 @@ const Accessories = () => {
                                   >
                                     <Edit className="h-3 w-3" />
                                   </Button>
+                                  <AlertDialog open={deleteConfirm.open && deleteConfirm.index === index} onOpenChange={(open) => !open && setDeleteConfirm({ open: false, index: null })}>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Peripheral?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to delete <strong>{peripheral.equipment_name || 'this peripheral'}</strong>? This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <div className="flex gap-3 justify-end mt-4">
+                                        <AlertDialogCancel onClick={() => setDeleteConfirm({ open: false, index: null })}>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={confirmDeletePeripheral} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                                      </div>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
                                   <Button
                                     type="button"
                                     size="sm"
@@ -1379,6 +2206,22 @@ const Accessories = () => {
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
                                 </div>
+                              </TableCell>
+                              <TableCell className="text-sm font-medium">
+                                {peripheral.assigned_it_person ? (
+                                  <div className="space-y-1">
+                                    <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs block">
+                                      {peripheral.assigned_it_person}
+                                    </span>
+                                    {peripheral.assigned_at && (
+                                      <span className="text-xs text-gray-500 block">
+                                        {new Date(peripheral.assigned_at).toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400 text-xs">Not assigned</span>
+                                )}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1402,6 +2245,77 @@ const Accessories = () => {
                   placeholder="Additional notes or remarks..."
                   className="border-sky-200 focus:border-sky-400"
                 />
+              </div>
+
+              {/* IT Department Receiving Section */}
+              <div className="md:col-span-2 lg:col-span-3 border-t pt-6">
+                <h3 className="text-lg font-semibold text-sky-700 mb-4 flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  IT Department Receiving - Assigned IT Persons
+                </h3>
+                
+                {/* IT Persons Assigned to Peripherals */}
+                {formData.peripherals && formData.peripherals.some(p => p.assigned_it_person) ? (
+                  <div className="mb-6 border border-sky-200 rounded-lg overflow-hidden">
+                    <div className="bg-sky-50 p-4">
+                      <h4 className="font-semibold text-sky-700 mb-3">IT Persons assigned to peripherals:</h4>
+                      <div className="space-y-3">
+                        {Array.from(new Set(
+                          formData.peripherals
+                            .filter(p => p.assigned_it_person)
+                            .map(p => p.assigned_it_person)
+                        )).map((personName, idx) => {
+                          const personDetails = itPersonsList.find(p => p.name === personName);
+                          const assignedPeripherals = formData.peripherals.filter(p => p.assigned_it_person === personName);
+                          return (
+                            <div key={idx} className="bg-white p-3 rounded border border-sky-100">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-sky-700">{personName}</p>
+                                  {personDetails && (
+                                    <p className="text-xs text-gray-600">{personDetails.designation}</p>
+                                  )}
+                                </div>
+                              </div>
+                              {assignedPeripherals.length > 0 && (
+                                <div className="mt-3 text-xs">
+                                  <div className="bg-sky-100 p-2 rounded mb-2">
+                                    <p className="text-gray-700 font-medium">Assigned Products ({assignedPeripherals.length}):</p>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {assignedPeripherals.map((peripheral, pidx) => (
+                                      <div key={pidx} className="bg-sky-50 p-2 rounded border border-sky-100">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className="bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-medium">
+                                            {peripheral.equipment_name || peripheral.product_type || `Item ${pidx + 1}`}
+                                          </span>
+                                        </div>
+                                        {peripheral.assigned_at && (
+                                          <p className="text-gray-500 text-xs mt-1">
+                                            📅 {new Date(peripheral.assigned_at).toLocaleString()}
+                                          </p>
+                                        )}
+                                        {!peripheral.assigned_at && (
+                                          <p className="text-gray-400 text-xs mt-1 italic">
+                                            Date: Not recorded
+                                          </p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-center text-amber-700 text-sm">
+                    No IT Persons assigned yet. Assign IT Persons while adding peripherals.
+                  </div>
+                )}
               </div>
             </div>
             
@@ -1904,64 +2818,177 @@ const Accessories = () => {
 
       {/* Add/Edit Peripheral Dialog */}
       <Dialog open={showPeripheralDialog} onOpenChange={setShowPeripheralDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sky-700">
-              {editingPeripheralIndex !== null ? "Edit Peripheral" : "Add Peripheral"}
+              {editingPeripheralIndex !== null ? "Edit Peripheral/Equipment" : "Add Peripheral/Equipment Information"}
             </DialogTitle>
             <DialogDescription>
-              {editingPeripheralIndex !== null ? "Update peripheral information" : "Add a new peripheral item"}
+              {editingPeripheralIndex !== null ? "Update peripheral information" : "Add equipment information details"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="product_type">Product Type *</Label>
-              <Input
-                id="product_type"
-                placeholder="Enter product type (e.g., Mouse, Keyboard, Monitor)"
-                value={peripheralForm.product_type}
-                onChange={(e) => setPeripheralForm({ ...peripheralForm, product_type: e.target.value })}
-                className="border-sky-200 focus:border-sky-400"
-              />
-              <p className="text-xs text-gray-500 mt-1">Type any product name to create it</p>
-            </div>
-            
-            <div>
-              <Label htmlFor="quantity">Quantity *</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                value={peripheralForm.quantity}
-                onChange={(e) => setPeripheralForm({ ...peripheralForm, quantity: parseInt(e.target.value) || 1 })}
-                className="border-sky-200 focus:border-sky-400"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="exchange_date">Exchange Date & Time</Label>
-              <Input
-                id="exchange_date"
-                type="datetime-local"
-                value={peripheralForm.exchange_date}
-                onChange={(e) => setPeripheralForm({ ...peripheralForm, exchange_date: e.target.value })}
-                className="border-sky-200 focus:border-sky-400"
-              />
-              <p className="text-xs text-gray-500 mt-1">Auto-fills with current date & time</p>
+            {/* Equipment Information Section */}
+            <div className="border-b pb-4">
+              <h4 className="font-semibold text-sky-700 mb-3 flex items-center gap-2">
+                <Monitor className="h-4 w-4" />
+                Equipment Information
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="sl_no">SL. No. *</Label>
+                  <Input
+                    id="sl_no"
+                    placeholder="e.g., 001"
+                    value={peripheralForm.sl_no}
+                    onChange={(e) => setPeripheralForm({ ...peripheralForm, sl_no: e.target.value })}
+                    className="border-sky-200 focus:border-sky-400"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="equipment_name">Equipment Name *</Label>
+                  <Input
+                    id="equipment_name"
+                    placeholder="e.g., Keyboard, Mouse, Monitor"
+                    value={peripheralForm.equipment_name}
+                    onChange={(e) => setPeripheralForm({ ...peripheralForm, equipment_name: e.target.value })}
+                    className="border-sky-200 focus:border-sky-400"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <Label htmlFor="brand_model">Brand/Model *</Label>
+                  <Input
+                    id="brand_model"
+                    placeholder="e.g., Dell KM636, Logitech MX Master"
+                    value={peripheralForm.brand_model}
+                    onChange={(e) => setPeripheralForm({ ...peripheralForm, brand_model: e.target.value })}
+                    className="border-sky-200 focus:border-sky-400"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="serial_number">Serial Number</Label>
+                  <Input
+                    id="serial_number"
+                    placeholder="Serial number"
+                    value={peripheralForm.serial_number}
+                    onChange={(e) => setPeripheralForm({ ...peripheralForm, serial_number: e.target.value })}
+                    className="border-sky-200 focus:border-sky-400"
+                  />
+                </div>
+              </div>
             </div>
 
+            {/* Additional Details Section */}
+            <div className="border-b pb-4">
+              <h4 className="font-semibold text-sky-700 mb-3">Additional Details</h4>
+              
+              <div>
+                <Label htmlFor="exchange_reason">Exchange Reason</Label>
+                <Textarea
+                  id="exchange_reason"
+                  placeholder="Reason for exchange or replacement..."
+                  value={peripheralForm.exchange_reason}
+                  onChange={(e) => setPeripheralForm({ ...peripheralForm, exchange_reason: e.target.value })}
+                  className="border-sky-200 focus:border-sky-400 h-20"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <Label htmlFor="return_date">Return Date</Label>
+                  <Input
+                    id="return_date"
+                    type="date"
+                    value={peripheralForm.return_date}
+                    onChange={(e) => setPeripheralForm({ ...peripheralForm, return_date: e.target.value })}
+                    className="border-sky-200 focus:border-sky-400"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="exchange_date">Exchange Date & Time</Label>
+                  <Input
+                    id="exchange_date"
+                    type="datetime-local"
+                    value={peripheralForm.exchange_date}
+                    onChange={(e) => setPeripheralForm({ ...peripheralForm, exchange_date: e.target.value })}
+                    className="border-sky-200 focus:border-sky-400"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <Label htmlFor="remarks">Remarks</Label>
+                <Textarea
+                  id="remarks"
+                  placeholder="Additional remarks or notes..."
+                  value={peripheralForm.remarks}
+                  onChange={(e) => setPeripheralForm({ ...peripheralForm, remarks: e.target.value })}
+                  className="border-sky-200 focus:border-sky-400 h-20"
+                />
+              </div>
+
+              <div className="mt-3">
+                <Label htmlFor="peripheral_it_person">Assign to IT Person</Label>
+                <select
+                  id="peripheral_it_person"
+                  value={peripheralForm.assigned_it_person || ""}
+                  onChange={(e) => {
+                    const timestamp = e.target.value ? new Date().toISOString() : null;
+                    setPeripheralForm({ 
+                      ...peripheralForm, 
+                      assigned_it_person: e.target.value,
+                      assigned_at: e.target.value ? timestamp : null
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-sky-200 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
+                >
+                  <option value="">Select IT Person</option>
+                  {itPersonsList.map((person, index) => (
+                    <option key={index} value={person.name}>
+                      {person.name} - {person.designation}
+                    </option>
+                  ))}
+                </select>
+                {itPersonsList.length === 0 && (
+                  <p className="text-xs text-red-500 mt-1">No IT Persons available. Please add IT Persons first.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Legacy Fields (kept for compatibility) */}
             <div>
-              <Label htmlFor="exchange_reason">Exchange Reason</Label>
-              <Textarea
-                id="exchange_reason"
-                placeholder="Reason for exchange..."
-                value={peripheralForm.exchange_reason}
-                onChange={(e) => setPeripheralForm({ ...peripheralForm, exchange_reason: e.target.value })}
-                className="border-sky-200 focus:border-sky-400"
-              />
+              <h4 className="font-semibold text-sky-700 mb-3">Legacy Information (Optional)</h4>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="product_type">Product Type</Label>
+                  <Input
+                    id="product_type"
+                    placeholder="Product type"
+                    value={peripheralForm.product_type}
+                    onChange={(e) => setPeripheralForm({ ...peripheralForm, product_type: e.target.value })}
+                    className="border-sky-200 focus:border-sky-400"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={peripheralForm.quantity}
+                    onChange={(e) => setPeripheralForm({ ...peripheralForm, quantity: parseInt(e.target.value) || 1 })}
+                    className="border-sky-200 focus:border-sky-400"
+                  />
+                </div>
+              </div>
             </div>
             
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-end gap-3 pt-4 border-t">
               <Button 
                 type="button" 
                 variant="outline" 
@@ -1980,6 +3007,145 @@ const Accessories = () => {
                 {editingPeripheralIndex !== null ? "Update" : "Add"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* IT Person Management Dialog */}
+      <Dialog open={showITPersonDialog} onOpenChange={setShowITPersonDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sky-700">IT Person Management</DialogTitle>
+            <DialogDescription>
+              Add, edit, or delete IT persons who will receive equipment
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* IT Person Form */}
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <h4 className="font-semibold text-emerald-700 mb-4">
+                {editingITPersonIndex !== null ? "Edit IT Person" : "Add New IT Person"}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="it_name_dialog">Receiving Name *</Label>
+                  <Input
+                    id="it_name_dialog"
+                    value={itPersonForm.name}
+                    onChange={(e) => setItPersonForm({ ...itPersonForm, name: e.target.value })}
+                    placeholder="IT Person Name"
+                    className="border-emerald-200 focus:border-emerald-400"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="it_desig_dialog">Designation *</Label>
+                  <Input
+                    id="it_desig_dialog"
+                    value={itPersonForm.designation}
+                    onChange={(e) => setItPersonForm({ ...itPersonForm, designation: e.target.value })}
+                    placeholder="Designation"
+                    className="border-emerald-200 focus:border-emerald-400"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="it_date_dialog">Receiving Date</Label>
+                  <Input
+                    id="it_date_dialog"
+                    type="date"
+                    value={itPersonForm.receiving_date}
+                    onChange={(e) => setItPersonForm({ ...itPersonForm, receiving_date: e.target.value })}
+                    className="border-emerald-200 focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Button
+                  type="button"
+                  onClick={handleAddITPerson}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {editingITPersonIndex !== null ? "Update" : "Add"} IT Person
+                </Button>
+                {editingITPersonIndex !== null && (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setEditingITPersonIndex(null);
+                      setItPersonForm({ name: "", designation: "", receiving_date: "" });
+                    }}
+                    variant="outline"
+                    className="border-gray-300"
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* IT Person List Table */}
+            {itPersonsList.length > 0 ? (
+              <div className="border border-emerald-200 rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-emerald-100">
+                      <TableHead className="text-emerald-700 font-semibold">Name</TableHead>
+                      <TableHead className="text-emerald-700 font-semibold">Designation</TableHead>
+                      <TableHead className="text-emerald-700 font-semibold">Receiving Date</TableHead>
+                      <TableHead className="text-emerald-700 font-semibold">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {itPersonsList.map((person, index) => (
+                      <TableRow key={index} className="hover:bg-emerald-50">
+                        <TableCell className="font-medium">{person.name}</TableCell>
+                        <TableCell>{person.designation}</TableCell>
+                        <TableCell className="text-sm">
+                          {person.receiving_date ? new Date(person.receiving_date).toLocaleDateString() : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditITPerson(index)}
+                              className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteITPerson(index)}
+                              className="border-red-200 text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500 border border-dashed border-gray-300 rounded-lg">
+                <p>No IT Persons added yet. Add one using the form above.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              type="button"
+              onClick={() => setShowITPersonDialog(false)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              Done
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
