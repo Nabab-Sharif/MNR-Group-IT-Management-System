@@ -192,13 +192,15 @@ const UserProfiles = () => {
   };
 
   const handleDeleteActivity = async (activityId) => {
-    await dbService.deleteUserActivity(activityId);
-    setUserActivities(prev => prev.filter(a => a.id !== activityId));
-    await loadUserData(selectedUserId);
-    toast({
-      title: "Activity deleted",
-      description: "Activity has been removed successfully.",
-    });
+    if (window.confirm("Are you sure you want to delete this activity? This action cannot be undone.")) {
+      await dbService.deleteUserActivity(activityId);
+      setUserActivities(prev => prev.filter(a => a.id !== activityId));
+      await loadUserData(selectedUserId);
+      toast({
+        title: "Activity deleted",
+        description: "Activity has been removed successfully.",
+      });
+    }
   };
 
   const printProfile = () => {
@@ -241,12 +243,14 @@ const UserProfiles = () => {
   };
 
   const handleDeleteSchedule = async (id) => {
-    await dbService.deleteSchedule(id);
-    await loadData();
-    toast({
-      title: "Schedule deleted",
-      description: "Schedule has been removed successfully.",
-    });
+    if (window.confirm("Are you sure you want to delete this schedule? This action cannot be undone.")) {
+      await dbService.deleteSchedule(id);
+      await loadData();
+      toast({
+        title: "Schedule deleted",
+        description: "Schedule has been removed successfully.",
+      });
+    }
   };
 
   const handleEditSchedule = (schedule) => {

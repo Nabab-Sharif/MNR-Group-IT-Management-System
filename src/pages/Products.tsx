@@ -95,36 +95,65 @@ const Products = () => {
     filterProducts();
   }, [products, searchQuery, selectedUnit, selectedCategory, selectedStatus]);
 
-  useEffect(() => {
-    // Sync categories from products
-    const uniqueCategories = [...new Set(products.map(p => p.category).filter(Boolean))];
-    setCategories(uniqueCategories);
-  }, [products]);
-
   const loadData = async () => {
-    const productsData = await dbService.getProducts();
-    const unitsData = await dbService.getUnits();
-    setProducts(productsData);
-    setUnits(unitsData);
-    
-    // Calculate stock stats
-    const keyboards = productsData.filter(p => 
-      p.category?.toLowerCase().includes('keyboard') && p.status?.toLowerCase() === 'active'
-    );
-    const mice = productsData.filter(p => 
-      p.category?.toLowerCase().includes('mouse') && p.status?.toLowerCase() === 'active'
-    );
-    const batteries = productsData.filter(p => 
-      (p.category?.toLowerCase().includes('battery') || p.category?.toLowerCase().includes('ups')) && 
-      p.status?.toLowerCase() === 'active'
-    );
-    
-    setStockStats({
-      keyboard: keyboards.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0),
-      mouse: mice.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0),
-      battery: batteries.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0),
-      totalStock: productsData.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0)
-    });
+    try {
+      const productsData = await dbService.getProducts();
+      const unitsData = await dbService.getUnits();
+      const categoriesData = await dbService.getCategories();
+      
+      setProducts(productsData || []);
+      setUnits(unitsData || []);
+      
+      // Load saved categories from IndexedDB
+      if (categoriesData && Array.isArray(categoriesData) && categoriesData.length > 0) {
+        const categoryNames = categoriesData.map(cat => cat.name).filter(Boolean);
+        setCategories(categoryNames);
+        console.log('Loaded categories from IndexedDB:', categoryNames);
+      } else {
+        // If no saved categories, sync from products and save
+        const uniqueCategories = [...new Set((productsData || []).map(p => p.category).filter(Boolean))];
+        setCategories(uniqueCategories);
+        console.log('Syncing categories from products:', uniqueCategories);
+        
+        // Save discovered categories to IndexedDB
+        for (const catName of uniqueCategories) {
+          try {
+            const existing = await dbService.getCategoryByName(catName);
+            if (!existing) {
+              await dbService.addCategory({ name: catName });
+            }
+          } catch (err) {
+            console.error(`Error saving category ${catName}:`, err);
+          }
+        }
+      }
+      
+      // Calculate stock stats
+      const keyboards = productsData.filter(p => 
+        p.category?.toLowerCase().includes('keyboard') && p.status?.toLowerCase() === 'active'
+      );
+      const mice = productsData.filter(p => 
+        p.category?.toLowerCase().includes('mouse') && p.status?.toLowerCase() === 'active'
+      );
+      const batteries = productsData.filter(p => 
+        (p.category?.toLowerCase().includes('battery') || p.category?.toLowerCase().includes('ups')) && 
+        p.status?.toLowerCase() === 'active'
+      );
+      
+      setStockStats({
+        keyboard: keyboards.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0),
+        mouse: mice.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0),
+        battery: batteries.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0),
+        totalStock: productsData.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0)
+      });
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load products and categories",
+        variant: "destructive"
+      });
+    }
   };
 
   const filterProducts = async () => {
@@ -199,19 +228,52 @@ const Products = () => {
   };
 
   // Category Management Functions
-  const handleAddCategory = () => {
-    if (newCategoryName.trim() && !categories.includes(newCategoryName.trim())) {
-      setCategories(prev => [...prev, newCategoryName.trim()]);
+  const handleAddCategory = async () => {
+    const trimmedName = newCategoryName.trim();
+    
+    if (!trimmedName) {
       toast({
-        title: "Category Added",
-        description: `Category "${newCategoryName}" has been added successfully.`,
+        title: "Error",
+        description: "Category name cannot be empty.",
+        variant: "destructive"
       });
-      setNewCategoryName("");
-      setIsCategoryDialogOpen(false);
-    } else if (categories.includes(newCategoryName.trim())) {
+      return;
+    }
+    
+    if (categories.includes(trimmedName)) {
       toast({
         title: "Category Exists",
         description: "This category already exists.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Save to IndexedDB
+      const result = await dbService.addCategory({ name: trimmedName });
+      console.log('Category saved to IndexedDB:', result);
+      
+      if (result) {
+        // Verify it was actually saved
+        const allCategories = await dbService.getCategories();
+        console.log('All categories after save:', allCategories);
+        
+        // Update local state
+        setCategories(prev => [...prev, trimmedName]);
+        
+        toast({
+          title: "Category Added",
+          description: `Category "${trimmedName}" has been added successfully.`,
+        });
+        setNewCategoryName("");
+        setIsCategoryDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add category: " + error.message,
         variant: "destructive"
       });
     }
@@ -225,6 +287,18 @@ const Products = () => {
         await dbService.updateProduct(product.id, { ...product, category: newCategory.trim() });
       }
       
+      // Update category in IndexedDB
+      const categoryRecord = await dbService.getCategoryByName(oldCategory);
+      if (categoryRecord) {
+        await dbService.updateCategory(categoryRecord.id, { name: newCategory.trim() });
+      } else {
+        // If not found, create new category record
+        await dbService.addCategory({ name: newCategory.trim() });
+      }
+      
+      // Update local state
+      setCategories(prev => prev.map(c => c === oldCategory ? newCategory.trim() : c));
+      
       await loadData();
       toast({
         title: "Category Updated",
@@ -237,23 +311,49 @@ const Products = () => {
 
   const handleDeleteCategory = async (category: string) => {
     const productsInCategory = products.filter(p => p.category === category);
+    
+    // Show confirmation dialog based on whether category has products
+    let confirmMessage = "";
     if (productsInCategory.length > 0) {
-      if (window.confirm(`This category has ${productsInCategory.length} products. Delete all products in this category?`)) {
-        for (const product of productsInCategory) {
-          await dbService.deleteProduct(product.id);
+      confirmMessage = `This category "${category}" has ${productsInCategory.length} products. Delete category and all its products? This action cannot be undone.`;
+    } else {
+      confirmMessage = `Are you sure you want to delete category "${category}"? This action cannot be undone.`;
+    }
+    
+    // Always show confirmation before deleting
+    if (window.confirm(confirmMessage)) {
+      try {
+        // Delete all products in the category if any
+        if (productsInCategory.length > 0) {
+          for (const product of productsInCategory) {
+            await dbService.deleteProduct(product.id);
+          }
         }
+        
+        // Delete category from IndexedDB
+        const categoryRecord = await dbService.getCategoryByName(category);
+        if (categoryRecord) {
+          await dbService.deleteCategory(categoryRecord.id);
+        }
+        
+        // Update local state
+        setCategories(prev => prev.filter(c => c !== category));
+        
         await loadData();
         toast({
           title: "Category Deleted",
-          description: `Category "${category}" and its ${productsInCategory.length} products have been deleted.`,
+          description: productsInCategory.length > 0 
+            ? `Category "${category}" and its ${productsInCategory.length} products have been deleted.`
+            : `Category "${category}" has been deleted.`,
+        });
+      } catch (error) {
+        console.error('Error deleting category:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete category: " + error.message,
+          variant: "destructive"
         });
       }
-    } else {
-      setCategories(prev => prev.filter(c => c !== category));
-      toast({
-        title: "Category Deleted",
-        description: `Category "${category}" has been deleted.`,
-      });
     }
   };
 

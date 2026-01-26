@@ -185,7 +185,7 @@ class DBService {
                     name: asset.employee_name,
                     designation: asset.designation,
                     email: asset.email,
-                    department_id: department?.id.toString() || '1',
+                    department_id: department ? .id.toString() || '1',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                 };
@@ -366,10 +366,10 @@ class DBService {
         if (query) {
             const searchTerm = query.toLowerCase();
             filtered = filtered.filter(product =>
-                product.name?.toLowerCase().includes(searchTerm) ||
-                product.category?.toLowerCase().includes(searchTerm) ||
-                product.brand?.toLowerCase().includes(searchTerm) ||
-                product.serial?.toLowerCase().includes(searchTerm)
+                product.name ? .toLowerCase().includes(searchTerm) ||
+                product.category ? .toLowerCase().includes(searchTerm) ||
+                product.brand ? .toLowerCase().includes(searchTerm) ||
+                product.serial ? .toLowerCase().includes(searchTerm)
             );
         }
 
@@ -391,9 +391,9 @@ class DBService {
         const assets = await this.getITAssets();
         switch (type) {
             case 'laptops':
-                return assets.filter(asset => asset.device_type?.toLowerCase() === 'laptop');
+                return assets.filter(asset => asset.device_type ? .toLowerCase() === 'laptop');
             case 'desktops':
-                return assets.filter(asset => asset.device_type?.toLowerCase() === 'desktop');
+                return assets.filter(asset => asset.device_type ? .toLowerCase() === 'desktop');
             case 'expired':
                 return assets.filter(asset => {
                     if (asset.antivirus_validity) {
@@ -518,13 +518,12 @@ class DBService {
             case 'desktops':
                 return assets.filter(asset => asset.device_type === 'desktop');
             case 'in_repair':
-                return assets.filter(asset => asset.remarks?.toLowerCase().includes('repair') ||
-                    asset.remarks?.toLowerCase().includes('faulty'));
+                return assets.filter(asset => asset.remarks ? .toLowerCase().includes('repair') ||
+                    asset.remarks ? .toLowerCase().includes('faulty'));
             case 'active':
                 return assets.filter(asset =>
                     !asset.remarks ||
-                    (
-                        !asset.remarks.toLowerCase().includes('repair') &&
+                    (!asset.remarks.toLowerCase().includes('repair') &&
                         !asset.remarks.toLowerCase().includes('faulty') &&
                         !asset.remarks.toLowerCase().includes('inactive')
                     )
@@ -692,6 +691,7 @@ class DBService {
             assets: await this.getITAssets(),
             units: await this.getUnits(),
             products: await this.getProducts(),
+            categories: await this.getCategories(),
             activities: await indexedDB.getAll('user_activities'),
             printers: await this.getPrinters(),
             ip_phones: await this.getIPPhones(),
@@ -713,6 +713,7 @@ class DBService {
             if (data.assets) await indexedDB.bulkPut('it_assets', data.assets);
             if (data.units) await indexedDB.bulkPut('units', data.units);
             if (data.products) await indexedDB.bulkPut('products', data.products);
+            if (data.categories) await indexedDB.bulkPut('categories', data.categories);
             if (data.activities) await indexedDB.bulkPut('user_activities', data.activities);
             if (data.printers) await indexedDB.bulkPut('printers', data.printers);
             if (data.ip_phones) await indexedDB.bulkPut('ip_phones', data.ip_phones);
@@ -952,6 +953,43 @@ class DBService {
 
     async deletePeripheral(id) {
         return await indexedDB.delete('peripherals', id);
+    }
+
+    // Categories CRUD
+    async getCategories() {
+        return await indexedDB.getAll('categories');
+    }
+
+    async addCategory(categoryData) {
+        const newCategory = {
+            ...categoryData,
+            id: Date.now(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+        return await indexedDB.add('categories', newCategory);
+    }
+
+    async updateCategory(id, updates) {
+        const category = await indexedDB.get('categories', id);
+        if (category) {
+            const updatedCategory = {
+                ...category,
+                ...updates,
+                updated_at: new Date().toISOString(),
+            };
+            return await indexedDB.put('categories', updatedCategory);
+        }
+        return null;
+    }
+
+    async deleteCategory(id) {
+        return await indexedDB.delete('categories', id);
+    }
+
+    async getCategoryByName(name) {
+        const categories = await this.getCategories();
+        return categories.find(cat => cat.name ? .toLowerCase() === name ? .toLowerCase());
     }
 }
 

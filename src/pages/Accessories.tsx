@@ -412,14 +412,16 @@ const Accessories = () => {
   };
 
   const handleDeleteITPerson = (index) => {
-    const updatedList = itPersonsList.filter((_, i) => i !== index);
-    setItPersonsList(updatedList);
-    // Save to localStorage
-    localStorage.setItem('mnr_it_persons', JSON.stringify(updatedList));
-    toast({
-      title: "IT Person deleted",
-      description: "IT Person has been removed successfully.",
-    });
+    if (window.confirm(`Are you sure you want to delete this IT Person? This action cannot be undone.`)) {
+      const updatedList = itPersonsList.filter((_, i) => i !== index);
+      setItPersonsList(updatedList);
+      // Save to localStorage
+      localStorage.setItem('mnr_it_persons', JSON.stringify(updatedList));
+      toast({
+        title: "IT Person deleted",
+        description: "IT Person has been removed successfully.",
+      });
+    }
   };
 
   const handlePrintPeripheral = (peripheral) => {
@@ -1156,11 +1158,13 @@ const Accessories = () => {
   };
 
   const handleDeletePicture = () => {
-    setFormData({ ...formData, picture: "" });
-    toast({
-      title: "Picture deleted",
-      description: "User picture has been deleted successfully.",
-    });
+    if (window.confirm("Are you sure you want to delete this picture? This action cannot be undone.")) {
+      setFormData({ ...formData, picture: "" });
+      toast({
+        title: "Picture deleted",
+        description: "User picture has been deleted successfully.",
+      });
+    }
   };
 
   const startCamera = async () => {
