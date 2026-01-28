@@ -881,7 +881,7 @@ const Accessories = () => {
           <div class="container">
             <div class="header">
               <div class="company-name">MNR Sweaters Ltd.</div>
-              <div class="form-title">Peripheral Equipment Return Form</div>
+              <div class="form-title">IT Equipment Disposal Return Form</div>
             </div>
 
             <div class="section-header">Equipment Information</div>
