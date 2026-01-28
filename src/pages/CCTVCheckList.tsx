@@ -235,16 +235,16 @@ const CCTVCheckList = () => {
       if (!nvr) return;
 
       checklist.cameras.forEach(cam => {
-        const hasIssue = cam.camera_position === "NOT OK" || 
-                        cam.camera_recordings === "NOT OK" || 
-                        cam.clear_vision === "NOT OK";
-        
+        const hasIssue = cam.camera_position === "NOT OK" ||
+          cam.camera_recordings === "NOT OK" ||
+          cam.clear_vision === "NOT OK";
+
         if (hasIssue) {
           const issueTypes: string[] = [];
           if (cam.camera_position === "NOT OK") issueTypes.push("Position");
           if (cam.camera_recordings === "NOT OK") issueTypes.push("Recording");
           if (cam.clear_vision === "NOT OK") issueTypes.push("Vision");
-          
+
           issues.push({
             nvr_number: nvr.nvr_number,
             nvr_id: nvr.id,
@@ -260,12 +260,12 @@ const CCTVCheckList = () => {
     // Get unique issues (latest per camera)
     const uniqueIssues: CameraIssue[] = [];
     const seenCameras = new Set<string>();
-    
+
     // Sort by date descending to get latest first
-    const sortedIssues = [...issues].sort((a, b) => 
+    const sortedIssues = [...issues].sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-    
+
     sortedIssues.forEach(issue => {
       const key = `${issue.nvr_id}-${issue.camera_id}`;
       if (!seenCameras.has(key)) {
@@ -279,13 +279,13 @@ const CCTVCheckList = () => {
     nvrs.forEach(nvr => {
       const nvrChecklists = checklists.filter(c => c.nvr_id === nvr.id);
       if (nvrChecklists.length > 0) {
-        const latestChecklist = nvrChecklists.sort((a, b) => 
+        const latestChecklist = nvrChecklists.sort((a, b) =>
           new Date(b.date).getTime() - new Date(a.date).getTime()
         )[0];
         latestChecklist.cameras.forEach(cam => {
-          const isOk = cam.camera_position === "OK" && 
-                      cam.camera_recordings === "OK" && 
-                      cam.clear_vision === "OK";
+          const isOk = cam.camera_position === "OK" &&
+            cam.camera_recordings === "OK" &&
+            cam.clear_vision === "OK";
           if (isOk) activeCameras++;
         });
       }
@@ -328,7 +328,7 @@ const CCTVCheckList = () => {
   // Filter logic for checklists
   const getFilteredChecklists = (nvrId?: number) => {
     let filtered = nvrId ? checklists.filter(c => c.nvr_id === nvrId) : checklists;
-    
+
     if (filterDateFrom) {
       filtered = filtered.filter(c => c.date >= filterDateFrom);
     }
@@ -341,14 +341,14 @@ const CCTVCheckList = () => {
         return nvr?.nvr_number === filterNvrNumber;
       });
     }
-    
+
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
   // Filter NVRs by search
   const getFilteredNvrs = () => {
     if (!searchNvr) return nvrs;
-    return nvrs.filter(nvr => 
+    return nvrs.filter(nvr =>
       nvr.nvr_number.toLowerCase().includes(searchNvr.toLowerCase()) ||
       nvr.name?.toLowerCase().includes(searchNvr.toLowerCase())
     );
@@ -357,7 +357,7 @@ const CCTVCheckList = () => {
   // Merge cell functions
   const handleCellClickForMerge = (row: number, column: string) => {
     if (!isMergeMode) return;
-    
+
     const existingIndex = selectedCellsForMerge.findIndex(c => c.row === row && c.column === column);
     if (existingIndex >= 0) {
       setSelectedCellsForMerge(prev => prev.filter((_, i) => i !== existingIndex));
@@ -392,10 +392,10 @@ const CCTVCheckList = () => {
 
     // Check for existing merges
     const column = columns[0] as keyof ColumnSettings;
-    const hasOverlap = mergedCells.some(m => 
-      m.column === column && 
-      ((startRow >= m.startRow && startRow <= m.endRow) || 
-       (endRow >= m.startRow && endRow <= m.endRow))
+    const hasOverlap = mergedCells.some(m =>
+      m.column === column &&
+      ((startRow >= m.startRow && startRow <= m.endRow) ||
+        (endRow >= m.startRow && endRow <= m.endRow))
     );
 
     if (hasOverlap) {
@@ -490,9 +490,9 @@ const CCTVCheckList = () => {
             <tbody>${cameraRows}</tbody>
           </table>
           <div class="signature-section">
-            <div class="sig-block"><div class="sig-space"></div><div class="sig-label">Checked By</div><div class="sig-name">${checklist.checked_by}</div></div>
-            <div class="sig-block"><div class="sig-space"></div><div class="sig-label">Verified By</div><div class="sig-name">${checklist.verified_by}</div></div>
-            <div class="sig-block"><div class="sig-space"></div><div class="sig-label">Approved By</div><div class="sig-name">${checklist.approved_by}</div></div>
+            <div class="sig-block"><div class="sig-name">${checklist.checked_by}</div></div>
+            <div class="sig-block"><div class="sig-name">${checklist.verified_by}</div></div>
+            <div class="sig-block"><div class="sig-name">${checklist.approved_by}</div></div>
           </div>
         </div>
       `;
@@ -668,7 +668,7 @@ const CCTVCheckList = () => {
   const handleDeleteChecklistWithConfirm = async (id: number) => {
     const checklist = checklists.find(c => c.id === id);
     if (!checklist) return;
-    
+
     setDeleteConfirmDialog({
       open: true,
       checklistId: id,
@@ -692,17 +692,17 @@ const CCTVCheckList = () => {
 
   const handleDeleteFilteredChecklists = () => {
     // Get the filtered checklists for the current NVR
-    const filteredChecklists = selectedNvr 
+    const filteredChecklists = selectedNvr
       ? getNvrChecklists(selectedNvr.id).filter(c => {
-          if (filterDateFrom && c.date < filterDateFrom) return false;
-          if (filterDateTo && c.date > filterDateTo) return false;
-          return true;
-        })
+        if (filterDateFrom && c.date < filterDateFrom) return false;
+        if (filterDateTo && c.date > filterDateTo) return false;
+        return true;
+      })
       : checklists.filter(c => {
-          if (filterDateFrom && c.date < filterDateFrom) return false;
-          if (filterDateTo && c.date > filterDateTo) return false;
-          return true;
-        });
+        if (filterDateFrom && c.date < filterDateFrom) return false;
+        if (filterDateTo && c.date > filterDateTo) return false;
+        return true;
+      });
 
     if (filteredChecklists.length === 0) {
       toast({ title: "No Data", description: "No checklists to delete.", variant: "destructive" });
@@ -720,9 +720,9 @@ const CCTVCheckList = () => {
         await dbService.deleteCCTVChecklist(checklist.id);
       }
       await loadData();
-      toast({ 
-        title: "Success", 
-        description: `${checklistsToDelete.length} checklist(s) have been deleted successfully.` 
+      toast({
+        title: "Success",
+        description: `${checklistsToDelete.length} checklist(s) have been deleted successfully.`
       });
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete checklists.", variant: "destructive" });
@@ -732,17 +732,17 @@ const CCTVCheckList = () => {
   const handleExportChecklists = () => {
     try {
       // Get filtered checklists for the current NVR with date range filter
-      const checklistsToExport = selectedNvr 
+      const checklistsToExport = selectedNvr
         ? getNvrChecklists(selectedNvr.id).filter(c => {
-            if (filterDateFrom && c.date < filterDateFrom) return false;
-            if (filterDateTo && c.date > filterDateTo) return false;
-            return true;
-          })
+          if (filterDateFrom && c.date < filterDateFrom) return false;
+          if (filterDateTo && c.date > filterDateTo) return false;
+          return true;
+        })
         : checklists.filter(c => {
-            if (filterDateFrom && c.date < filterDateFrom) return false;
-            if (filterDateTo && c.date > filterDateTo) return false;
-            return true;
-          });
+          if (filterDateFrom && c.date < filterDateFrom) return false;
+          if (filterDateTo && c.date > filterDateTo) return false;
+          return true;
+        });
 
       if (checklistsToExport.length === 0) {
         toast({ title: "No Data", description: "No checklists to export.", variant: "destructive" });
@@ -764,14 +764,14 @@ const CCTVCheckList = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const dateRange = filterDateFrom && filterDateTo 
+      const dateRange = filterDateFrom && filterDateTo
         ? `_${filterDateFrom}_to_${filterDateTo}`
         : filterDateFrom
-        ? `_from_${filterDateFrom}`
-        : filterDateTo
-        ? `_to_${filterDateTo}`
-        : "";
-      const fileName = selectedNvr 
+          ? `_from_${filterDateFrom}`
+          : filterDateTo
+            ? `_to_${filterDateTo}`
+            : "";
+      const fileName = selectedNvr
         ? `CCTV_Checklists_NVR-${selectedNvr.nvr_number}${dateRange}_${new Date().toISOString().split('T')[0]}.json`
         : `CCTV_Checklists_All${dateRange}_${new Date().toISOString().split('T')[0]}.json`;
       a.download = fileName;
@@ -780,9 +780,9 @@ const CCTVCheckList = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast({ 
-        title: "Export Successful", 
-        description: `${checklistsToExport.length} checklist(s) exported successfully.` 
+      toast({
+        title: "Export Successful",
+        description: `${checklistsToExport.length} checklist(s) exported successfully.`
       });
     } catch (error) {
       toast({ title: "Export Failed", description: "Failed to export checklists.", variant: "destructive" });
@@ -803,10 +803,10 @@ const CCTVCheckList = () => {
       }
 
       if (importData.nvr && selectedNvr && importData.nvr.id !== selectedNvr.id) {
-        toast({ 
-          title: "NVR Mismatch", 
-          description: `This file contains checklists for NVR-${importData.nvr.nvr_number}, but you're viewing NVR-${selectedNvr.nvr_number}.`, 
-          variant: "destructive" 
+        toast({
+          title: "NVR Mismatch",
+          description: `This file contains checklists for NVR-${importData.nvr.nvr_number}, but you're viewing NVR-${selectedNvr.nvr_number}.`,
+          variant: "destructive"
         });
         return;
       }
@@ -826,9 +826,9 @@ const CCTVCheckList = () => {
       }
 
       await loadData();
-      toast({ 
-        title: "Import Successful", 
-        description: `${importedCount} checklist(s) imported successfully.` 
+      toast({
+        title: "Import Successful",
+        description: `${importedCount} checklist(s) imported successfully.`
       });
     } catch (error) {
       console.error('Import error:', error);
@@ -982,17 +982,14 @@ const CCTVCheckList = () => {
           <div class="signature-section">
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-label">Checked By</div>
               <div class="sig-name">${checklist.checked_by}</div>
             </div>
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-label">Verified By</div>
               <div class="sig-name">${checklist.verified_by}</div>
             </div>
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-label">Approved By</div>
               <div class="sig-name">${checklist.approved_by}</div>
             </div>
           </div>
@@ -1012,11 +1009,11 @@ const CCTVCheckList = () => {
   const handlePrintAllNVRs = () => {
     // Get the latest checklist for each NVR
     const latestChecklists: { nvr: NVR; checklist: DailyChecklist }[] = [];
-    
+
     nvrs.forEach(nvr => {
       const nvrChecklists = checklists.filter(c => c.nvr_id === nvr.id);
       if (nvrChecklists.length > 0) {
-        const latest = nvrChecklists.sort((a, b) => 
+        const latest = nvrChecklists.sort((a, b) =>
           new Date(b.date).getTime() - new Date(a.date).getTime()
         )[0];
         latestChecklists.push({ nvr, checklist: latest });
@@ -1098,17 +1095,14 @@ const CCTVCheckList = () => {
           <div class="signature-section">
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-label">Checked By</div>
               <div class="sig-name">${checklist.checked_by}</div>
             </div>
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-label">Verified By</div>
               <div class="sig-name">${checklist.verified_by}</div>
             </div>
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-label">Approved By</div>
               <div class="sig-name">${checklist.approved_by}</div>
             </div>
           </div>
@@ -1205,7 +1199,7 @@ const CCTVCheckList = () => {
   };
 
   const getNvrChecklists = (nvrId: number) => {
-    return checklists.filter(c => c.nvr_id === nvrId).sort((a, b) => 
+    return checklists.filter(c => c.nvr_id === nvrId).sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
   };
@@ -1223,7 +1217,7 @@ const CCTVCheckList = () => {
   if (!selectedNvr) {
     const filteredNvrs = getFilteredNvrs();
     const filteredChecklistsAll = getFilteredChecklists();
-    
+
     return (
       <div className="w-full px-4 md:px-6 lg:px-8 py-6 space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -1403,7 +1397,7 @@ const CCTVCheckList = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {nvrs.flatMap(nvr => 
+                    {nvrs.flatMap(nvr =>
                       (nvr.cameras || []).map((cam, idx) => (
                         <TableRow key={`${nvr.id}-${idx}`}>
                           <TableCell className="font-medium">NVR-{nvr.nvr_number}</TableCell>
@@ -1464,10 +1458,10 @@ const CCTVCheckList = () => {
                     {nvrs.flatMap(nvr => {
                       const nvrChecklists = checklists.filter(c => c.nvr_id === nvr.id);
                       if (nvrChecklists.length === 0) return [];
-                      const latestChecklist = nvrChecklists.sort((a, b) => 
+                      const latestChecklist = nvrChecklists.sort((a, b) =>
                         new Date(b.date).getTime() - new Date(a.date).getTime()
                       )[0];
-                      return latestChecklist.cameras.filter(cam => 
+                      return latestChecklist.cameras.filter(cam =>
                         cam.camera_position === 'OK' && cam.camera_recordings === 'OK' && cam.clear_vision === 'OK'
                       ).map((cam, idx) => (
                         <TableRow key={`${nvr.id}-${idx}`}>
@@ -1484,7 +1478,7 @@ const CCTVCheckList = () => {
             </DialogContent>
           </Dialog>
 
-          <Card 
+          <Card
             className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20 perspective-1000 hover-lift cursor-pointer"
             onClick={() => nvrStats.withIssues > 0 && setIsIssuesViewOpen(true)}
           >
@@ -1539,7 +1533,7 @@ const CCTVCheckList = () => {
                   <TableBody>
                     {nvrs.map(nvr => {
                       const nvrChecklists = checklists.filter(c => c.nvr_id === nvr.id);
-                      const latestDate = nvrChecklists.length > 0 
+                      const latestDate = nvrChecklists.length > 0
                         ? formatDate(nvrChecklists.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date)
                         : '-';
                       return (
@@ -1852,8 +1846,8 @@ const CCTVCheckList = () => {
               />
             </div>
             <div className="flex gap-2 items-end">
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="outline"
                 onClick={() => {
                   setFilterDateFrom("");
@@ -1863,7 +1857,7 @@ const CCTVCheckList = () => {
                 <X className="h-3 w-3 mr-1" />
                 Clear
               </Button>
-              <Button 
+              <Button
                 size="sm"
                 variant="destructive"
                 onClick={() => handleDeleteFilteredChecklists()}
@@ -1874,7 +1868,7 @@ const CCTVCheckList = () => {
               </Button>
             </div>
             <div className="flex gap-2 items-end">
-              <Button 
+              <Button
                 size="sm"
                 variant="outline"
                 onClick={() => handleExportChecklists()}
@@ -1891,7 +1885,7 @@ const CCTVCheckList = () => {
                 style={{ display: 'none' }}
                 onChange={handleImportChecklists}
               />
-              <Button 
+              <Button
                 size="sm"
                 variant="outline"
                 onClick={() => document.getElementById('import-checklists')?.click()}
@@ -2034,13 +2028,13 @@ const CCTVCheckList = () => {
 
             {/* Excel-like Table */}
             <div className="border rounded-lg overflow-auto bg-background" style={{ maxHeight: "60vh" }}>
-              <table 
+              <table
                 className="w-full border-collapse"
                 style={{ fontSize: `${fontSize}px` }}
               >
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-muted">
-                    <th 
+                    <th
                       className="border border-border p-2 text-center font-bold relative select-none"
                       style={{ width: columnWidths.sl, minWidth: columnWidths.sl }}
                     >
@@ -2050,7 +2044,7 @@ const CCTVCheckList = () => {
                         onMouseDown={(e) => handleMouseDown(e, "sl")}
                       />
                     </th>
-                    <th 
+                    <th
                       className="border border-border p-2 text-center font-bold relative select-none"
                       style={{ width: columnWidths.cameraId, minWidth: columnWidths.cameraId }}
                     >
@@ -2060,7 +2054,7 @@ const CCTVCheckList = () => {
                         onMouseDown={(e) => handleMouseDown(e, "cameraId")}
                       />
                     </th>
-                    <th 
+                    <th
                       className="border border-border p-2 text-left font-bold relative select-none"
                       style={{ width: columnWidths.locationName, minWidth: columnWidths.locationName }}
                     >
@@ -2070,7 +2064,7 @@ const CCTVCheckList = () => {
                         onMouseDown={(e) => handleMouseDown(e, "locationName")}
                       />
                     </th>
-                    <th 
+                    <th
                       className="border border-border p-2 text-center font-bold relative select-none"
                       style={{ width: columnWidths.cameraPosition, minWidth: columnWidths.cameraPosition }}
                     >
@@ -2080,7 +2074,7 @@ const CCTVCheckList = () => {
                         onMouseDown={(e) => handleMouseDown(e, "cameraPosition")}
                       />
                     </th>
-                    <th 
+                    <th
                       className="border border-border p-2 text-center font-bold relative select-none"
                       style={{ width: columnWidths.cameraRecordings, minWidth: columnWidths.cameraRecordings }}
                     >
@@ -2090,7 +2084,7 @@ const CCTVCheckList = () => {
                         onMouseDown={(e) => handleMouseDown(e, "cameraRecordings")}
                       />
                     </th>
-                    <th 
+                    <th
                       className="border border-border p-2 text-center font-bold relative select-none"
                       style={{ width: columnWidths.clearVision, minWidth: columnWidths.clearVision }}
                     >
@@ -2100,7 +2094,7 @@ const CCTVCheckList = () => {
                         onMouseDown={(e) => handleMouseDown(e, "clearVision")}
                       />
                     </th>
-                    <th 
+                    <th
                       className="border border-border p-2 text-center font-bold relative select-none"
                       style={{ width: columnWidths.remarks, minWidth: columnWidths.remarks }}
                     >
@@ -2114,14 +2108,14 @@ const CCTVCheckList = () => {
                 </thead>
                 <tbody>
                   {checklistCameras.map((camera, index) => (
-                    <tr 
-                      key={index} 
+                    <tr
+                      key={index}
                       className="hover:bg-muted/50"
                       style={{ height: rowHeight }}
                     >
-                      <td 
+                      <td
                         className="border border-border p-1 text-center font-medium"
-                        style={{ 
+                        style={{
                           whiteSpace: wordWrap ? "normal" : "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis"
@@ -2129,9 +2123,9 @@ const CCTVCheckList = () => {
                       >
                         {index + 1}
                       </td>
-                      <td 
+                      <td
                         className="border border-border p-1 text-center font-bold text-primary"
-                        style={{ 
+                        style={{
                           whiteSpace: wordWrap ? "normal" : "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis"
@@ -2139,9 +2133,9 @@ const CCTVCheckList = () => {
                       >
                         {camera.camera_id}
                       </td>
-                      <td 
+                      <td
                         className="border border-border p-1 text-blue-600"
-                        style={{ 
+                        style={{
                           whiteSpace: wordWrap ? "normal" : "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis"
@@ -2197,7 +2191,7 @@ const CCTVCheckList = () => {
                           onChange={(e) => updateChecklistCamera(index, "remarks", e.target.value)}
                           placeholder="Remarks..."
                           className="h-7 text-xs"
-                          style={{ 
+                          style={{
                             whiteSpace: wordWrap ? "normal" : "nowrap"
                           }}
                         />
