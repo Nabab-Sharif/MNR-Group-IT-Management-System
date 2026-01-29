@@ -56,7 +56,7 @@ const CCTVPrintCard = forwardRef<HTMLDivElement, CCTVPrintCardProps>(
         <div className="cctv-print-header">
           <div className="flex items-center justify-center gap-4 mb-2">
             <img
-              src="/lovable-uploads/20eb7d56-b963-4a41-9830-eead460b0120.png"
+              src="/logo/logo_1.png"
               alt="MNR Group Logo"
               className="w-20 h-20 object-contain"
             />

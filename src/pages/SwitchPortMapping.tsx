@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -63,6 +64,8 @@ const SwitchPortMapping = () => {
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'switch' | 'port'; item: any } | null>(null);
   const [expandedSwitches, setExpandedSwitches] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterLocation, setFilterLocation] = useState<string>("__all__");
+  const [filterStatus, setFilterStatus] = useState<string>("__all__");
   
   // Form states
   const [newSwitch, setNewSwitch] = useState({
@@ -419,7 +422,22 @@ const SwitchPortMapping = () => {
   };
 
   // Get root switches (no parent)
-  const getRootSwitches = () => switches.filter(s => !s.parent_switch_id);
+  const getRootSwitches = () => {
+    let filtered = switches.filter(s => !s.parent_switch_id);
+    
+    if (filterLocation !== "__all__") {
+      filtered = filtered.filter(s => s.location === filterLocation);
+    }
+    
+    if (searchTerm) {
+      filtered = filtered.filter(s => 
+        s.switch_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.location?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  };
 
   // Get child switches
   const getChildSwitches = (parentId: string) => switches.filter(s => s.parent_switch_id === parentId);
@@ -905,7 +923,7 @@ const SwitchPortMapping = () => {
 
       {/* Search */}
       <Card className="mb-6">
-        <CardContent className="pt-4">
+        <CardContent className="pt-4 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input 
@@ -924,6 +942,40 @@ const SwitchPortMapping = () => {
                 <X className="w-4 h-4" />
               </Button>
             )}
+          </div>
+          
+          {/* Filter Dropdowns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="location-filter">Location</Label>
+              <Select value={filterLocation} onValueChange={setFilterLocation}>
+                <SelectTrigger id="location-filter">
+                  <SelectValue placeholder="Select location" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Locations</SelectItem>
+                  {[...new Set(switches.map(s => s.location))].filter(Boolean).map(location => (
+                    <SelectItem key={location} value={location}>{location}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="status-filter">Port Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger id="status-filter">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Status</SelectItem>
+                  <SelectItem value="FREE">Free</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="ISSUE">Issue</SelectItem>
+                  <SelectItem value="DISABLED">Disabled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>

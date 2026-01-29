@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import dbService from "@/services/dbService";
 import excelService from "@/services/excelService";
+import DataImportExport from "@/components/DataImportExport";
 
 const themes = [
   { id: "sky", name: "Sky Blue", color: "hsl(200, 100%, 45%)" },
@@ -381,7 +382,7 @@ const Settings = () => {
         </Card>
 
         {/* Data Management */}
-        <Card className="border-primary/20">
+        <Card className="border-primary/20 lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-primary">
               <Database className="h-5 w-5" />
@@ -392,31 +393,25 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button onClick={exportAllData} className="w-full" variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              Export All Data
-            </Button>
-
-            <div>
-              <Label htmlFor="importData">Import Data</Label>
-              <Input
-                id="importData"
-                type="file"
-                accept=".json"
-                onChange={importData}
-                className="mt-2"
-              />
+            <div className="mb-6">
+              <h3 className="font-semibold mb-3">Full System Backup & Restore</h3>
+              <DataImportExport onImportComplete={() => window.location.reload()} />
             </div>
 
-            <Button onClick={generateSampleData} className="w-full" variant="outline">
-              <Upload className="mr-2 h-4 w-4" />
-              Generate Sample Data
-            </Button>
+            <div className="border-t pt-4">
+              <h3 className="font-semibold mb-3">Additional Options</h3>
+              <div className="space-y-2">
+                <Button onClick={generateSampleData} className="w-full" variant="outline">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Generate Sample Data
+                </Button>
 
-            <Button onClick={clearAllData} className="w-full" variant="destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Clear All Data
-            </Button>
+                <Button onClick={clearAllData} className="w-full" variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear All Data
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

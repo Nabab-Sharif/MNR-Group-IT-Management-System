@@ -103,6 +103,7 @@ const DataImportExport = ({ onImportComplete }: DataImportExportProps) => {
       assets: data.assets?.length || 0,
       units: data.units?.length || 0,
       products: data.products?.length || 0,
+      itPersons: data.it_persons?.length || 0,
       printers: data.printers?.length || 0,
       ipPhones: data.ip_phones?.length || 0,
       wifiNetworks: data.wifi_networks?.length || 0,

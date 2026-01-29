@@ -69,7 +69,7 @@ const IPPhonePrintCard = ({ phones, officeName, departmentName }: IPPhonePrintCa
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
               <img 
-                src="/lovable-uploads/20eb7d56-b963-4a41-9830-eead460b0120.png" 
+                src="/logo/logo_1.png" 
                 alt="MNR Group Logo" 
                 style={{ height: '40px', width: 'auto' }}
               />

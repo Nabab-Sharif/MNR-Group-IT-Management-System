@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Printer as PrinterIcon, Plus, Edit, Trash2, Download, ArrowLeft, Building2, Users, Upload } from "lucide-react";
@@ -28,6 +29,8 @@ const Printers = () => {
   const [editingPrinter, setEditingPrinter] = useState<Printer | null>(null);
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+  const [filterOffice, setFilterOffice] = useState<string>("__all__");
+  const [filterDepartment, setFilterDepartment] = useState<string>("__all__");
   const [searchTerm, setSearchTerm] = useState("");
   
   const [formData, setFormData] = useState({
@@ -101,14 +104,25 @@ const Printers = () => {
 
   const getPrintersByUnit = () => {
     const unitGroups: { [key: string]: Printer[] } = {};
-    const filtered = searchTerm
-      ? printers.filter(printer =>
-          printer.printer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          printer.printer_model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          printer.unit_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          printer.department_name?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      : printers;
+    let filtered = [...printers];
+    
+    // Apply filters
+    if (filterOffice !== "__all__") {
+      filtered = filtered.filter(p => p.unit_number === filterOffice);
+    }
+    if (filterDepartment !== "__all__") {
+      filtered = filtered.filter(p => p.department_name === filterDepartment);
+    }
+    
+    // Apply search
+    if (searchTerm) {
+      filtered = filtered.filter(printer =>
+        printer.printer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        printer.printer_model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        printer.unit_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        printer.department_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
     
     filtered.forEach(printer => {
       if (printer.unit_number) {
@@ -284,7 +298,7 @@ const Printers = () => {
               
               const rows = printers.map((printer: any, idx: number) => `<tr><td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${idx + 1}</td><td style="border: 1px solid #ddd; padding: 8px;">${printer.printer_name}</td><td style="border: 1px solid #ddd; padding: 8px;">${printer.printer_model}</td><td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${printer.ip_address}</td><td style="border: 1px solid #ddd; padding: 8px;">${printer.unit_number}</td><td style="border: 1px solid #ddd; padding: 8px;">${printer.department_name}</td></tr>`).join('');
               
-              const content = `<!DOCTYPE html><html><head><title>Printers List</title><style>@page { size: A4; margin: 8mm; } @media print { html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } } body { font-family: Arial, sans-serif; margin: 0; padding: 15px; } .header { text-align: center; margin-bottom: 20px; } .header img { height: 50px; display: block; margin: 0 auto 10px; } .header h1 { color: #0284c7; margin: 0; } .header p { color: #666; margin: 5px 0; } table { width: 100%; border-collapse: collapse; margin-top: 15px; } th { background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 10px; border: 1px solid #ddd; text-align: left; } td { padding: 8px; } tr:nth-child(even) { background: #f0f9ff; }</style></head><body><div class="header"><img src="/lovable-uploads/20eb7d56-b963-4a41-9830-eead460b0120.png" /><h1>MNR Group IT</h1><p>Printers Directory</p></div><table><thead><tr><th style="width: 40px;">SL</th><th>Printer Name</th><th>Model</th><th>IP Address</th><th>Unit/Office</th><th>Department</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+              const content = `<!DOCTYPE html><html><head><title>Printers List</title><style>@page { size: A4; margin: 8mm; } @media print { html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } } body { font-family: Arial, sans-serif; margin: 0; padding: 15px; } .header { text-align: center; margin-bottom: 20px; } .header img { height: 50px; display: block; margin: 0 auto 10px; } .header h1 { color: #0284c7; margin: 0; } .header p { color: #666; margin: 5px 0; } table { width: 100%; border-collapse: collapse; margin-top: 15px; } th { background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 10px; border: 1px solid #ddd; text-align: left; } td { padding: 8px; } tr:nth-child(even) { background: #f0f9ff; }</style></head><body><div class="header"><img src="/logo/logo_1.png" /><h1>MNR Group IT</h1><p>Printers Directory</p></div><table><thead><tr><th style="width: 40px;">SL</th><th>Printer Name</th><th>Model</th><th>IP Address</th><th>Unit/Office</th><th>Department</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
               
               printWindow.document.open();
               printWindow.document.write(content);
@@ -323,12 +337,45 @@ const Printers = () => {
 
         {/* Search Filter */}
         <Card className="border-primary/20">
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-4">
             <SearchFilter
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               searchPlaceholder="Search printers by name, model, unit, or department..."
             />
+            
+            {/* Filter Dropdowns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="office-filter">Office/Unit</Label>
+                <Select value={filterOffice} onValueChange={setFilterOffice}>
+                  <SelectTrigger id="office-filter">
+                    <SelectValue placeholder="Select office/unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Offices/Units</SelectItem>
+                    {[...new Set(printers.map(p => p.unit_number))].filter(Boolean).map(office => (
+                      <SelectItem key={office} value={office}>{office}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="dept-filter">Department</Label>
+                <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+                  <SelectTrigger id="dept-filter">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Departments</SelectItem>
+                    {[...new Set(printers.map(p => p.department_name))].filter(Boolean).map(dept => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

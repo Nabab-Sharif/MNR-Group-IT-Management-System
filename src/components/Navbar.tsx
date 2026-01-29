@@ -14,7 +14,7 @@ import {
   Camera,
   ClipboardCheck,
   Settings,
-  Cable
+  Cable,
 } from "lucide-react";
 import { useState } from "react";
 

@@ -32,6 +32,8 @@ const IPAddresses = () => {
   const [editingIP, setEditingIP] = useState<IPAddress | null>(null);
   const [selectedSeries, setSelectedSeries] = useState<string | null>(null);
   const [selectedDeviceType, setSelectedDeviceType] = useState<string | null>(null);
+  const [filterOffice, setFilterOffice] = useState<string>("__all__");
+  const [filterDepartment, setFilterDepartment] = useState<string>("__all__");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [newSeriesName, setNewSeriesName] = useState("");
@@ -188,6 +190,14 @@ const IPAddresses = () => {
 
     if (selectedDeviceType) {
       filtered = filtered.filter((ip) => ip.device_type === selectedDeviceType);
+    }
+
+    if (filterOffice !== "__all__") {
+      filtered = filtered.filter((ip) => ip.unit_office === filterOffice);
+    }
+
+    if (filterDepartment !== "__all__") {
+      filtered = filtered.filter((ip) => ip.user_department === filterDepartment);
     }
 
     if (searchTerm) {
@@ -393,7 +403,7 @@ const IPAddresses = () => {
 
         {/* Search Filter */}
         <Card className="border-primary/20">
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-4">
             <SearchFilter
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
@@ -411,6 +421,39 @@ const IPAddresses = () => {
                 },
               ]}
             />
+            
+            {/* Filter Dropdowns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="office-filter">Office/Unit</Label>
+                <Select value={filterOffice} onValueChange={setFilterOffice}>
+                  <SelectTrigger id="office-filter">
+                    <SelectValue placeholder="Select office/unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Offices/Units</SelectItem>
+                    {[...new Set(ipAddresses.map(ip => ip.unit_office))].filter(Boolean).map(office => (
+                      <SelectItem key={office} value={office}>{office}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="dept-filter">Department</Label>
+                <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+                  <SelectTrigger id="dept-filter">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Departments</SelectItem>
+                    {[...new Set(ipAddresses.map(ip => ip.user_department))].filter(Boolean).map(dept => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

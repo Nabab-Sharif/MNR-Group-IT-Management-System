@@ -12,6 +12,7 @@ import Products from "./pages/Products";
 import Peripherals from "./pages/Peripherals";
 import EquipmentReturn from "./pages/EquipmentReturn";
 import UserProfiles from "./pages/UserProfiles";
+import ITPersonManagement from "./pages/ITPersonManagement";
 import Printers from "./pages/Printers";
 import IPPhoneList from "./pages/IPPhoneList";
 import WifiList from "./pages/WifiList";
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/equipment-return" element={<EquipmentReturn />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/user-profiles" element={<UserProfiles />} />
+              <Route path="/it-persons" element={<ITPersonManagement />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

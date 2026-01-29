@@ -84,6 +84,7 @@ const Accessories = () => {
     unit_office: "",
     ultraview_id: "",
     anydesk_id: "",
+    anydesk_password: "",
     windows_version: "",
     antivirus_code: "",
     antivirus_validity: "",
@@ -240,6 +241,7 @@ const Accessories = () => {
       unit_office: "",
       ultraview_id: "",
       anydesk_id: "",
+      anydesk_password: "",
       windows_version: "",
       antivirus_code: "",
       antivirus_validity: "",
@@ -2017,6 +2019,17 @@ const Accessories = () => {
                 />
               </div>
 
+              <div>
+                <Label htmlFor="anydesk_password">AnyDesk Password</Label>
+                <Input
+                  id="anydesk_password"
+                  type="password"
+                  value={formData.anydesk_password}
+                  onChange={(e) => setFormData({ ...formData, anydesk_password: e.target.value })}
+                  className="border-sky-200 focus:border-sky-400"
+                />
+              </div>
+
               {/* Security Information */}
               <div className="md:col-span-2 lg:col-span-3 mt-6">
                 <h3 className="text-lg font-semibold text-sky-700 mb-4 flex items-center gap-2">
@@ -2454,7 +2467,7 @@ const Accessories = () => {
               {/* Print Header */}
               <div className="print-header hidden print:block">
                 <div className="flex items-center justify-between mb-4">
-                  <img src="/lovable-uploads/20eb7d56-b963-4a41-9830-eead460b0120.png" alt="MNR Group Logo" className="h-16" />
+                  <img src="/logo/logo_1.png" alt="MNR Group Logo" className="h-16" />
                   <h1 className="text-3xl font-bold text-sky-700">MNR Group</h1>
                 </div>
                 <h2 className="text-xl font-semibold text-center text-gray-700 border-t-2 border-sky-500 pt-3">IT User Profile</h2>

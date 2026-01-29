@@ -2,9 +2,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 import { 
   Network, 
   Eye, 
+  EyeOff,
   Monitor, 
   Phone, 
   Mail,
@@ -22,6 +24,7 @@ interface UserAssetCardProps {
     designation?: string;
     ip_no?: string;
     anydesk_id?: string;
+    anydesk_password?: string;
     ultraview_id?: string;
     mobile?: string;
     phone_no?: string;
@@ -40,6 +43,7 @@ interface UserAssetCardProps {
 
 const UserAssetCard = ({ asset, index = 0 }: UserAssetCardProps) => {
   const { toast } = useToast();
+  const [showAnyDeskPassword, setShowAnyDeskPassword] = useState(false);
 
   const handleCopy = (value: string, label: string) => {
     navigator.clipboard.writeText(value);
@@ -166,6 +170,38 @@ const UserAssetCard = ({ asset, index = 0 }: UserAssetCardProps) => {
                   <p className="text-[9px] opacity-70 uppercase font-semibold">AnyDesk</p>
                   <p className="font-mono text-xs font-bold truncate">{asset.anydesk_id}</p>
                 </div>
+              </button>
+            )}
+
+            {/* AnyDesk Password */}
+            {asset.anydesk_password && (
+              <button
+                onClick={() => handleCopy(asset.anydesk_password!, 'AnyDesk Password')}
+                className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 backdrop-blur-md border border-red-400/40 hover:border-red-300/60 transition-all duration-300 hover:shadow-lg group/anydesk-pwd"
+              >
+                <div className="w-8 h-8 rounded-lg bg-red-500/30 flex items-center justify-center border border-red-400/50 group-hover/anydesk-pwd:border-red-300 transition-all">
+                  <Lock className="h-4 w-4 text-red-100" />
+                </div>
+                <div className="text-left min-w-0 flex-1">
+                  <p className="text-[9px] opacity-70 uppercase font-semibold">AnyDesk Pwd</p>
+                  <p className="font-mono text-xs font-bold truncate">
+                    {showAnyDeskPassword ? asset.anydesk_password : '••••••••'}
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAnyDeskPassword(!showAnyDeskPassword);
+                  }}
+                  className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-all"
+                  title={showAnyDeskPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showAnyDeskPassword ? (
+                    <EyeOff className="h-3.5 w-3.5 text-red-100" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5 text-red-100" />
+                  )}
+                </button>
               </button>
             )}
 

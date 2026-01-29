@@ -390,39 +390,49 @@ const Products = () => {
     return { count: categoryProducts.length, totalQuantity, activeCount };
   };
 
-  const handleExportData = () => {
-    const data = dbService.exportData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mnr_products_data_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast({
-      title: "Data exported",
-      description: "Product data has been exported successfully.",
-    });
+  const handleExportData = async () => {
+    try {
+      const data = await dbService.exportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mnr_products_data_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({
+        title: "Data exported",
+        description: "Product data has been exported successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export data. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleImportData = (event) => {
+  const handleImportData = async (event) => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const result = e.target?.result;
           if (typeof result === 'string') {
             const data = JSON.parse(result);
-            const success = dbService.importData(data);
+            const success = await dbService.importData(data);
             if (success) {
-              loadData();
+              await loadData();
               toast({
                 title: "Data imported",
                 description: "Product data has been imported successfully.",
               });
+            } else {
+              throw new Error("Import failed");
             }
           }
         } catch (error) {
@@ -634,7 +644,7 @@ const Products = () => {
       <body>
         <div class="print-date">📅 Print Date: ${new Date().toLocaleString()}</div>
         <div class="header">
-          <img src="/lovable-uploads/20eb7d56-b963-4a41-9830-eead460b0120.png" />
+          <img src="/logo/logo_1.png" />
           <h1>📊 MNR Group - Product Stock Report</h1>
           <p style="color: #64748b; margin: 0; font-size: 14px;">Comprehensive In-Stock Inventory Overview</p>
         </div>

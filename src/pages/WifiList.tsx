@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Wifi, Plus, Edit, Trash2, Download, ArrowLeft, Printer, Building2, Users, Search, Upload } from "lucide-react";
+import { Wifi, Plus, Edit, Trash2, Download, ArrowLeft, Printer, Building2, Users, Search, Upload, Copy, Eye, EyeOff } from "lucide-react";
 import dbService from "@/services/dbService";
 import QRCode from "qrcode";
 import WifiPrintCard from "@/components/WifiPrintCard";
@@ -17,6 +18,7 @@ interface WifiNetwork {
   id: number;
   wifi_name: string;
   wifi_password: string;
+  wifi_area: string;
   wifi_qr_code: string;
   office_name: string;
   department_name: string;
@@ -33,11 +35,15 @@ const WifiList = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [printWifi, setPrintWifi] = useState<WifiNetwork | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showPasswordId, setShowPasswordId] = useState<number | null>(null);
+  const [filterOffice, setFilterOffice] = useState<string>("__all__");
+  const [filterDepartment, setFilterDepartment] = useState<string>("__all__");
   const printRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState({
     wifi_name: "",
     wifi_password: "",
+    wifi_area: "",
     office_name: "",
     department_name: "",
     ip_address: "",
@@ -91,6 +97,7 @@ const WifiList = () => {
     setFormData({
       wifi_name: wifi.wifi_name,
       wifi_password: wifi.wifi_password,
+      wifi_area: wifi.wifi_area || "",
       office_name: wifi.office_name,
       department_name: wifi.department_name,
       ip_address: wifi.ip_address,
@@ -110,6 +117,7 @@ const WifiList = () => {
     setFormData({
       wifi_name: "",
       wifi_password: "",
+      wifi_area: "",
       office_name: selectedOffice || "",
       department_name: selectedDepartment || "",
       ip_address: "",
@@ -189,7 +197,7 @@ const WifiList = () => {
             </head>
             <body>
               <div class="wifi-card">
-                <img src="/lovable-uploads/20eb7d56-b963-4a41-9830-eead460b0120.png" alt="Logo" class="logo">
+                <img src="/logo/logo_1.png" alt="Logo" class="logo">
                 <div class="title">WiFi Network</div>
                 <div class="wifi-name">${wifi.wifi_name}</div>
                 <div class="qr-code"><img src="${wifi.wifi_qr_code}" alt="QR Code"></div>
@@ -216,8 +224,184 @@ const WifiList = () => {
     }, 100);
   };
 
+  const handlePrintAllWifi = () => {
+    const filteredWifi = wifiNetworks.filter(wifi => {
+      if (filterOffice && filterOffice !== "__all__" && wifi.office_name !== filterOffice) return false;
+      if (filterDepartment && filterDepartment !== "__all__" && wifi.department_name !== filterDepartment) return false;
+      return true;
+    });
+
+    if (filteredWifi.length === 0) {
+      toast({ title: "No WiFi Networks", description: "No WiFi networks to print with current filters.", variant: "destructive" });
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const wifiCards = filteredWifi.map(wifi => `
+      <div style="page-break-after: always; width: 100%; padding: 40px; box-sizing: border-box;">
+        <div style="width: 400px; margin: 0 auto; padding: 40px; background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%); border: 4px solid #0ea5e9; border-radius: 20px; text-align: center;">
+          <img src="/logo/logo_1.png" alt="Logo" style="width: 120px; margin: 0 auto 20px; display: block;">
+          <div style="font-size: 20px; color: #0ea5e9; margin-bottom: 10px;">WiFi Network</div>
+          <div style="font-size: 32px; font-weight: bold; color: #1e293b; margin: 15px 0;">${wifi.wifi_name}</div>
+          <div style="width: 200px; height: 200px; margin: 25px auto; border: 4px solid #0ea5e9; border-radius: 16px; padding: 10px; background: white;">
+            <img src="${wifi.wifi_qr_code}" alt="QR Code" style="width: 100%; height: 100%;">
+          </div>
+          <div style="font-size: 14px; color: #64748b; margin: 10px 0;">Scan QR Code to connect</div>
+          <div style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
+            <div style="font-size: 12px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">Password</div>
+            <div style="font-size: 24px; font-weight: bold; letter-spacing: 3px; margin-top: 8px;">${wifi.wifi_password}</div>
+          </div>
+          <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+            <p style="font-size: 12px; color: #64748b; margin: 0;">MNR Group - IT Department</p>
+            <p style="font-size: 12px; color: #64748b; margin: 5px 0 0 0;">Contact IT for assistance</p>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>WiFi Networks - Print</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          html, body { 
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: white;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+          }
+          @page { 
+            margin: 0;
+            size: A4;
+          }
+          @media print {
+            html, body { 
+              background: white; 
+              margin: 0; 
+              padding: 0;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${wifiCards}
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+
+    toast({ title: "Print Ready", description: `${wifiNetworks.length} WiFi network(s) ready to print.` });
+  };
+
+  const handlePrintFilteredWifi = () => {
+    if (!selectedOffice || !selectedDepartment) return;
+
+    const filteredWifi = wifiNetworks.filter(
+      wifi => wifi.office_name === selectedOffice && wifi.department_name === selectedDepartment
+    ).filter(wifi => 
+      !searchTerm || wifi.wifi_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (filteredWifi.length === 0) {
+      toast({ title: "No WiFi Networks", description: "No WiFi networks to print with current filters.", variant: "destructive" });
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const wifiCards = filteredWifi.map(wifi => `
+      <div style="page-break-after: always; width: 100%; padding: 40px; box-sizing: border-box;">
+        <div style="width: 400px; margin: 0 auto; padding: 40px; background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%); border: 4px solid #0ea5e9; border-radius: 20px; text-align: center;">
+          <img src="/logo/logo_1.png" alt="Logo" style="width: 120px; margin: 0 auto 20px; display: block;">
+          <div style="font-size: 20px; color: #0ea5e9; margin-bottom: 10px;">WiFi Network</div>
+          <div style="font-size: 32px; font-weight: bold; color: #1e293b; margin: 15px 0;">${wifi.wifi_name}</div>
+          <div style="width: 200px; height: 200px; margin: 25px auto; border: 4px solid #0ea5e9; border-radius: 16px; padding: 10px; background: white;">
+            <img src="${wifi.wifi_qr_code}" alt="QR Code" style="width: 100%; height: 100%;">
+          </div>
+          <div style="font-size: 14px; color: #64748b; margin: 10px 0;">Scan QR Code to connect</div>
+          <div style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
+            <div style="font-size: 12px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">Password</div>
+            <div style="font-size: 24px; font-weight: bold; letter-spacing: 3px; margin-top: 8px;">${wifi.wifi_password}</div>
+          </div>
+          <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+            <p style="font-size: 12px; color: #64748b; margin: 0;">MNR Group - IT Department</p>
+            <p style="font-size: 12px; color: #64748b; margin: 5px 0 0 0;">Contact IT for assistance</p>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>WiFi Networks - Print</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          html, body { 
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: white;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+          }
+          @page { 
+            margin: 0;
+            size: A4;
+          }
+          @media print {
+            html, body { 
+              background: white; 
+              margin: 0; 
+              padding: 0;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${wifiCards}
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+
+    toast({ title: "Print Ready", description: `${filteredWifi.length} WiFi network(s) ready to print.` });
+  };
+
   const handleExportData = () => {
-    const data = wifiNetworks;
+    const filteredWifi = wifiNetworks.filter(wifi => {
+      if (filterOffice && filterOffice !== "__all__" && wifi.office_name !== filterOffice) return false;
+      if (filterDepartment && filterDepartment !== "__all__" && wifi.department_name !== filterDepartment) return false;
+      return true;
+    });
+
+    const data = filteredWifi.length > 0 ? filteredWifi : wifiNetworks;
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -227,7 +411,8 @@ const WifiList = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast({ title: "Data exported", description: "WiFi networks data has been exported successfully." });
+    const count = filteredWifi.length > 0 ? filteredWifi.length : wifiNetworks.length;
+    toast({ title: "Data exported", description: `${count} WiFi networks data has been exported successfully.` });
   };
 
   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -339,6 +524,15 @@ const WifiList = () => {
             required
           />
         </div>
+        <div>
+          <Label htmlFor="wifi_area">WiFi Area</Label>
+          <Input
+            id="wifi_area"
+            value={formData.wifi_area}
+            onChange={(e) => setFormData({ ...formData, wifi_area: e.target.value })}
+            placeholder="e.g., Main Office, Conference Room"
+          />
+        </div>
         <div className="md:col-span-2">
           <Label htmlFor="ip_address">IP Address</Label>
           <Input
@@ -371,10 +565,65 @@ const WifiList = () => {
             </h1>
             <p className="text-muted-foreground mt-2">Select an office to view WiFi networks</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              <Select value={filterOffice} onValueChange={setFilterOffice}>
+                <SelectTrigger className="w-40 border-primary/30">
+                  <SelectValue placeholder="Filter by Unit/Office" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Offices</SelectItem>
+                  {Object.keys(wifiByOffice).map((office) => (
+                    <SelectItem key={office} value={office}>
+                      {office}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+                <SelectTrigger className="w-40 border-primary/30">
+                  <SelectValue placeholder="Filter by Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Departments</SelectItem>
+                  {filterOffice && filterOffice !== "__all__"
+                    ? Array.from(
+                        wifiNetworks
+                          .filter(w => w.office_name === filterOffice)
+                          .reduce((acc: Set<string>, network) => {
+                            if (network.department_name) acc.add(network.department_name);
+                            return acc;
+                          }, new Set())
+                      ).map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))
+                    : Array.from(
+                        wifiNetworks.reduce((acc: Set<string>, network) => {
+                          if (network.department_name) acc.add(network.department_name);
+                          return acc;
+                        }, new Set())
+                      ).map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <Button variant="outline" onClick={handleExportData} className="border-primary/30 text-primary hover:bg-primary/10">
               <Download className="h-4 w-4 mr-2" />
               Export
+            </Button>
+            <Button 
+              onClick={handlePrintAllWifi}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print All
             </Button>
             <Button variant="outline" onClick={() => document.getElementById('wifi-import-file')?.click()} className="border-primary/30 text-primary hover:bg-primary/10">
               <Upload className="h-4 w-4 mr-2" />
@@ -411,7 +660,9 @@ const WifiList = () => {
         </Card>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {Object.entries(wifiByOffice).map(([officeName, officeWifis]) => (
+          {Object.entries(wifiByOffice)
+            .filter(([officeName]) => !filterOffice || filterOffice === "__all__" || officeName === filterOffice)
+            .map(([officeName, officeWifis]) => (
             <Card 
               key={officeName} 
               className="cursor-pointer perspective-1000 hover-lift glow-effect animate-slide-up bg-gradient-to-br from-card to-card/80 border-primary/20"
@@ -465,7 +716,15 @@ const WifiList = () => {
             </h1>
             <p className="text-muted-foreground mt-2">Select a department to view WiFi details</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handlePrintAllWifi}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print All
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button 
                 onClick={() => {
@@ -486,6 +745,7 @@ const WifiList = () => {
               {renderForm()}
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Search Filter */}
@@ -500,7 +760,9 @@ const WifiList = () => {
         </Card>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {Object.entries(wifiByDept).map(([deptName, deptWifis]) => (
+          {Object.entries(wifiByDept)
+            .filter(([deptName]) => !filterDepartment || filterDepartment === "__all__" || deptName === filterDepartment)
+            .map(([deptName, deptWifis]) => (
             <Card 
               key={deptName} 
               className="cursor-pointer perspective-1000 hover-lift glow-effect animate-scale-in bg-gradient-to-br from-card to-card/80 border-primary/20"
@@ -554,7 +816,18 @@ const WifiList = () => {
           </h1>
           <p className="text-muted-foreground mt-2">{filteredWifi.length} WiFi networks</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handlePrintFilteredWifi}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Print All
+          </Button>
+        </div>
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button 
               onClick={() => {
@@ -575,7 +848,14 @@ const WifiList = () => {
             {renderForm()}
           </DialogContent>
         </Dialog>
-      </div>
+
+        <Button 
+          onClick={handlePrintAllWifi}
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Print All
+        </Button>
 
       {/* Search Filter */}
       <Card className="border-primary/20">
@@ -594,7 +874,20 @@ const WifiList = () => {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-lg text-primary">{wifi.wifi_name}</CardTitle>
+                  <div className="flex items-center gap-2 mb-2">
+                    <CardTitle className="text-sm text-primary">{wifi.wifi_name}</CardTitle>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        navigator.clipboard.writeText(wifi.wifi_name);
+                        toast({ title: "Copied!", description: `WiFi Name: ${wifi.wifi_name}` });
+                      }}
+                      className="h-6 w-6 p-0"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
                   <CardDescription className="mt-2">
                     <span className="font-bold text-success">{wifi.department_name}</span>
                   </CardDescription>
@@ -610,10 +903,80 @@ const WifiList = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2 text-sm">
-                <p><span className="font-semibold">Password:</span> {wifi.wifi_password}</p>
+              <div className="space-y-3 text-sm">
+                {/* Department */}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">Department:</span>
+                  <span className="text-primary">{wifi.department_name}</span>
+                </div>
+
+                {/* WiFi Name */}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">WiFi Name:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary">{wifi.wifi_name}</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        navigator.clipboard.writeText(wifi.wifi_name);
+                        toast({ title: "Copied!", description: `WiFi: ${wifi.wifi_name}` });
+                      }}
+                      className="h-5 w-5 p-0"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* WiFi Password */}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">Password:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary font-mono">
+                      {showPasswordId === wifi.id ? wifi.wifi_password : '••••••••'}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowPasswordId(showPasswordId === wifi.id ? null : wifi.id)}
+                      className="h-5 w-5 p-0"
+                      title={showPasswordId === wifi.id ? 'Hide' : 'Show'}
+                    >
+                      {showPasswordId === wifi.id ? (
+                        <EyeOff className="h-3 w-3" />
+                      ) : (
+                        <Eye className="h-3 w-3" />
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        navigator.clipboard.writeText(wifi.wifi_password);
+                        toast({ title: "Copied!", description: "WiFi Password copied!" });
+                      }}
+                      className="h-5 w-5 p-0"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* WiFi Area */}
+                {wifi.wifi_area && (
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">Area:</span>
+                    <span className="text-primary">{wifi.wifi_area}</span>
+                  </div>
+                )}
+
+                {/* IP Address */}
                 {wifi.ip_address && (
-                  <p><span className="font-semibold">IP:</span> <span className="text-primary">{wifi.ip_address}</span></p>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">IP:</span>
+                    <span className="text-primary font-mono">{wifi.ip_address}</span>
+                  </div>
                 )}
               </div>
               
@@ -662,6 +1025,7 @@ const WifiList = () => {
             ref={printRef}
             wifiName={printWifi.wifi_name}
             wifiPassword={printWifi.wifi_password}
+            wifiArea={printWifi.wifi_area}
             qrCode={printWifi.wifi_qr_code}
           />
         )}

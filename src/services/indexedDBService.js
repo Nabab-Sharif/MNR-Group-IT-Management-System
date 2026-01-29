@@ -67,6 +67,10 @@ class IndexedDBService {
                 if (!db.objectStoreNames.contains('cctv_checklists')) {
                     db.createObjectStore('cctv_checklists', { keyPath: 'id' });
                 }
+                // IT Person Management
+                if (!db.objectStoreNames.contains('it_persons')) {
+                    db.createObjectStore('it_persons', { keyPath: 'id' });
+                }
                 // Switch Port Mapping stores
                 if (!db.objectStoreNames.contains('switches')) {
                     db.createObjectStore('switches', { keyPath: 'id' });

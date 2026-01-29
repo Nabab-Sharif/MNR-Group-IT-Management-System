@@ -615,6 +615,20 @@ const CCTVCheckList = () => {
   const handleSaveChecklist = async () => {
     if (!selectedNvr) return;
 
+    // Check for duplicate same-date entries
+    const existingChecklist = checklists.find(
+      c => c.nvr_id === selectedNvr.id && c.date === checklistFormData.date
+    );
+
+    if (existingChecklist) {
+      toast({
+        title: "Duplicate Entry",
+        description: `A checklist for ${selectedNvr.name} on ${checklistFormData.date} already exists. Please edit the existing one instead.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     const newChecklist = {
       nvr_id: selectedNvr.id,
       date: checklistFormData.date,
@@ -646,6 +660,7 @@ const CCTVCheckList = () => {
     if (!selectedChecklist) return;
 
     await dbService.updateCCTVChecklist(selectedChecklist.id, {
+      date: checklistFormData.date,
       cameras: checklistCameras,
       checked_by: checklistFormData.checked_by,
       verified_by: checklistFormData.verified_by,
@@ -1196,6 +1211,18 @@ const CCTVCheckList = () => {
     const updated = [...checklistCameras];
     updated[index] = { ...updated[index], [field]: value };
     setChecklistCameras(updated);
+  };
+
+  const getPreviousRemarks = (cameraId: string) => {
+    const previousRemarks = new Set<string>();
+    checklists.forEach(checklist => {
+      checklist.cameras.forEach(camera => {
+        if (camera.camera_id === cameraId && camera.remarks) {
+          previousRemarks.add(camera.remarks);
+        }
+      });
+    });
+    return Array.from(previousRemarks);
   };
 
   const getNvrChecklists = (nvrId: number) => {
@@ -2012,19 +2039,18 @@ const CCTVCheckList = () => {
           </DialogHeader>
 
           <div className="flex-1 overflow-auto">
-            {!isViewChecklistOpen && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <Label htmlFor="checklist_date">Date</Label>
-                  <Input
-                    id="checklist_date"
-                    type="date"
-                    value={checklistFormData.date}
-                    onChange={(e) => setChecklistFormData({ ...checklistFormData, date: e.target.value })}
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="checklist_date">Date</Label>
+                <Input
+                  id="checklist_date"
+                  type="date"
+                  value={checklistFormData.date}
+                  onChange={(e) => setChecklistFormData({ ...checklistFormData, date: e.target.value })}
+                  disabled={!isViewChecklistOpen && isChecklistDialogOpen === false}
+                />
               </div>
-            )}
+            </div>
 
             {/* Excel-like Table */}
             <div className="border rounded-lg overflow-auto bg-background" style={{ maxHeight: "60vh" }}>
@@ -2186,15 +2212,23 @@ const CCTVCheckList = () => {
                         </Select>
                       </td>
                       <td className="border border-border p-1">
-                        <Input
-                          value={camera.remarks}
-                          onChange={(e) => updateChecklistCamera(index, "remarks", e.target.value)}
-                          placeholder="Remarks..."
-                          className="h-7 text-xs"
-                          style={{
-                            whiteSpace: wordWrap ? "normal" : "nowrap"
-                          }}
-                        />
+                        <div className="relative">
+                          <Input
+                            value={camera.remarks}
+                            onChange={(e) => updateChecklistCamera(index, "remarks", e.target.value)}
+                            placeholder="Remarks..."
+                            className="h-7 text-xs"
+                            list={`remarks-${index}`}
+                            style={{
+                              whiteSpace: wordWrap ? "normal" : "nowrap"
+                            }}
+                          />
+                          <datalist id={`remarks-${index}`}>
+                            {getPreviousRemarks(camera.camera_id).map((remark, idx) => (
+                              <option key={idx} value={remark} />
+                            ))}
+                          </datalist>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -13,6 +13,7 @@ import {
   UserCircle, 
   Camera, 
   Download, 
+  Upload,
   Edit,
   Shield,
   Mouse,
@@ -144,7 +145,68 @@ const UserProfiles = () => {
     setAllEmployees(combined);
   };
 
-  const loadUserData = async (userId) => {
+  const handleExportData = async () => {
+    try {
+      const usersData = await dbService.getUsers();
+      const blob = new Blob([JSON.stringify(usersData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `it_persons_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({
+        title: "Data exported",
+        description: "IT Persons data has been exported successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export data. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleImportData = async (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const result = e.target?.result;
+          if (typeof result === 'string') {
+            const data = JSON.parse(result);
+            if (Array.isArray(data)) {
+              for (const user of data) {
+                if (user.name) {
+                  await dbService.addUser(user);
+                }
+              }
+              await loadData();
+              toast({
+                title: "Data imported",
+                description: "IT Persons data has been imported successfully.",
+              });
+            } else {
+              throw new Error("Invalid data format");
+            }
+          }
+        } catch (error) {
+          toast({
+            title: "Import failed",
+            description: "Failed to import data. Please check the file format.",
+            variant: "destructive"
+          });
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const loadUserData = async (userId: string) => {
     const activities = await dbService.getUserActivities(userId);
     const stats = await dbService.getUserStats(userId);
     setUserActivities(activities);
@@ -317,6 +379,31 @@ const UserProfiles = () => {
             <p className="text-lg text-muted-foreground mt-2">
               Select a unit to view user profiles
             </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleExportData}
+              variant="outline"
+              className="border-sky-200 text-sky-700 hover:bg-sky-50"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button
+              onClick={() => document.getElementById('import-file-users')?.click()}
+              variant="outline"
+              className="border-sky-200 text-sky-700 hover:bg-sky-50"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import
+            </Button>
+            <input
+              id="import-file-users"
+              type="file"
+              accept=".json"
+              onChange={handleImportData}
+              className="hidden"
+            />
           </div>
         </div>
 
@@ -509,7 +596,7 @@ const UserProfiles = () => {
       {/* Print Header - Hidden on screen, shown in print */}
       <div className="print-header hidden print:block">
         <div className="flex items-center justify-between mb-4">
-          <img src="/lovable-uploads/20eb7d56-b963-4a41-9830-eead460b0120.png" alt="MNR Group Logo" className="h-16" />
+          <img src="/logo/logo_1.png" alt="MNR Group Logo" className="h-16" />
           <h1 className="text-3xl font-bold text-sky-700">MNR Group</h1>
         </div>
         <h2 className="text-xl font-semibold text-center text-gray-700 border-t-2 border-sky-500 pt-3">User Profile</h2>

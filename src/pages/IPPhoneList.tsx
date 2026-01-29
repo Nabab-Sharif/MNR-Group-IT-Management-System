@@ -36,6 +36,8 @@ const IPPhoneList = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterOffice, setFilterOffice] = useState<string>("__all__");
+  const [filterDepartment, setFilterDepartment] = useState<string>("__all__");
 
   const [formData, setFormData] = useState({
     extension_number: "",
@@ -203,17 +205,24 @@ const IPPhoneList = () => {
   };
 
   const handleExportData = () => {
-    const data = getFilteredPhones();
+    const filteredPhones = ipPhones.filter(phone => {
+      if (filterOffice && filterOffice !== "__all__" && phone.office_name !== filterOffice) return false;
+      if (filterDepartment && filterDepartment !== "__all__" && phone.department_name !== filterDepartment) return false;
+      return true;
+    });
+
+    const data = filteredPhones.length > 0 ? filteredPhones : ipPhones;
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ip_phones_${selectedOffice || "all"}_${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `ip_phones_${new Date().toISOString().split("T")[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast({ title: "Data exported", description: "IP Phones data has been exported successfully." });
+    const count = filteredPhones.length > 0 ? filteredPhones.length : ipPhones.length;
+    toast({ title: "Data exported", description: `${count} IP phones data has been exported successfully.` });
   };
 
   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -239,6 +248,120 @@ const IPPhoneList = () => {
       };
       reader.readAsText(file);
     }
+  };
+
+  const handlePrintAll = () => {
+    const filteredPhones = ipPhones.filter(phone => {
+      if (filterOffice && filterOffice !== "__all__" && phone.office_name !== filterOffice) return false;
+      if (filterDepartment && filterDepartment !== "__all__" && phone.department_name !== filterDepartment) return false;
+      return true;
+    });
+
+    if (filteredPhones.length === 0) {
+      toast({ title: "No IP Phones", description: "No IP phones to print with current filters.", variant: "destructive" });
+      return;
+    }
+
+    localStorage.setItem('ipphone_print_theme', printTheme);
+    const theme = printThemes[printTheme as keyof typeof printThemes];
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) return;
+
+    const pages = [];
+    const itemsPerPage = 25;
+    for (let i = 0; i < filteredPhones.length; i += itemsPerPage) {
+      pages.push(filteredPhones.slice(i, i + itemsPerPage));
+    }
+
+    const pagesHtml = pages.map((pagePhones, pageIndex) => {
+      const rowsHtml = pagePhones.map((phone, idx) => `
+        <tr style="background-color: ${idx % 2 === 0 ? '#ffffff' : theme.secondary}; border-bottom: 1px solid #ddd;">
+          <td style="padding: 2.5mm 2mm; border-right: 1px solid #ddd; font-weight: 600; color: ${theme.primary}; text-align: center; font-size: 8.5px;">${phone.extension_number}</td>
+          <td style="padding: 2.5mm 2mm; border-right: 1px solid #ddd; font-size: 7.5px;">
+            <div style="font-weight: 600;">${phone.user_name}</div>
+            ${phone.department_name ? `<div style="font-size: 6.5px; color: #666;">${phone.department_name}</div>` : ''}
+          </td>
+          <td style="padding: 2.5mm 2mm; border-right: 1px solid #ddd; font-size: 7px; color: #555;">${phone.designation || '-'}</td>
+          <td style="padding: 2.5mm 2mm; font-size: 7px; color: #555;">${phone.department_name || '-'}</td>
+        </tr>
+      `).join('');
+
+      const officeHeader = filterOffice && filterOffice !== "__all__" ? filterOffice : null;
+
+      return `
+        <div style="width: 210mm; min-height: 297mm; padding: 4mm 3mm; box-sizing: border-box; page-break-after: ${pageIndex < pages.length - 1 ? 'always' : 'auto'}; font-family: 'Segoe UI', Arial, sans-serif;">
+          <!-- Header Section -->
+          <div style="margin-bottom: 4mm; border-bottom: 3px solid ${theme.primary}; padding-bottom: 2mm; text-align: center;">
+            <div style="margin-bottom: 2mm;">
+              <img src="/logo/logo_1.png" alt="MNR Group Logo" style="height: 50px; width: auto; margin-bottom: 2mm;" />
+            </div>
+            <h1 style="font-size: 14px; font-weight: 700; color: ${theme.primary}; margin: 0; letter-spacing: 0.5px;">MNR GROUP</h1>
+            ${officeHeader ? `<p style="font-size: 9px; color: #333; margin: 2px 0; font-weight: 600;">${officeHeader}</p>` : ''}
+            <p style="font-size: 8px; color: #555; margin: 1px 0; font-weight: 500;">IP Phone Directory</p>
+          </div>
+
+          <!-- Info Section -->
+
+
+          <!-- Data Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 2mm;">
+            <thead>
+              <tr style="background: linear-gradient(to right, ${theme.primary}, ${theme.secondary}); color: white; font-weight: 700;">
+                <th style="padding: 2.5mm 2mm; text-align: center; border-right: 1px solid #999; font-size: 7.5px; width: 12%;">Extension</th>
+                <th style="padding: 2.5mm 2mm; text-align: left; border-right: 1px solid #999; font-size: 7.5px;">User / Department</th>
+                <th style="padding: 2.5mm 2mm; text-align: left; border-right: 1px solid #999; font-size: 7.5px;">Designation</th>
+                <th style="padding: 2.5mm 2mm; text-align: left; font-size: 7.5px;">Department</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <!-- Footer -->
+          <div style="margin-top: 2mm; padding-top: 1.5mm; border-top: 1px dashed #999; text-align: center; font-size: 6.5px; color: #888;">
+            <p style="margin: 0;">This is a confidential document. Unauthorized distribution is prohibited.</p>
+            <p style="margin: 0.5mm 0 0 0;">© ${new Date().getFullYear()} MNR Group - IT Department</p>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const css = `
+      @media print {
+        @page {
+          size: A4;
+          margin: 0;
+          padding: 0;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+        }
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    `;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>IP Phones - ${new Date().toLocaleDateString()}</title>
+        <style>${css}</style>
+      </head>
+      <body>
+        ${pagesHtml}
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
   };
 
   const handlePrint = () => {
@@ -309,9 +432,12 @@ const IPPhoneList = () => {
       return `
         <div style="width: 210mm; min-height: 297mm; padding: 3mm 2mm; box-sizing: border-box; page-break-after: ${pageIndex < pages.length - 1 ? 'always' : 'auto'};">
           <div style="text-align: center; margin-bottom: 3mm; padding-bottom: 2mm; border-bottom: 2px solid ${theme.primary};">
-            <img src="/lovable-uploads/20eb7d56-b963-4a41-9830-eead460b0120.png" alt="MNR Group Logo" style="height: 45px; width: auto; display: block; margin: 0 auto 6px auto;" />
-            <h1 style="font-size: 16px; font-weight: bold; color: ${theme.primary}; margin: 0;">MNR Group IT</h1>
-            <p style="font-size: 11px; color: #444; margin: 2px 0;">IP Phone Extension Directory</p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 2mm; margin-bottom: 2mm;">
+              <img src="/logo/logo_1.png" alt="MNR Group Logo" style="height: 35px; width: auto;" />
+              <h1 style="font-size: 16px; font-weight: bold; color: ${theme.primary}; margin: 0;">MNR Group</h1>
+            </div>
+            ${filterOffice && filterOffice !== "__all__" ? `<h2 style="font-size: 12px; font-weight: 600; color: #333; margin: 0;">${filterOffice}</h2>` : ''}
+            <p style="font-size: 10px; color: #666; margin: ${filterOffice && filterOffice !== "__all__" ? '1mm 0 0 0' : '2mm 0 0 0'};">IP Phone Extension Directory</p>
           </div>
           <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.5mm; font-size: 7px;">
             ${officesHtml}
@@ -444,14 +570,69 @@ const IPPhoneList = () => {
   if (!selectedOffice) {
     return (
       <div className="w-full px-4 md:px-6 lg:px-8 py-6 space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent animate-slide-up">
               IP Phone Lists
             </h1>
             <p className="text-muted-foreground mt-2">Select an office to view IP phones</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <Select value={filterOffice} onValueChange={setFilterOffice}>
+                <SelectTrigger className="w-40 border-primary/30">
+                  <SelectValue placeholder="Filter by Unit/Office" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Offices</SelectItem>
+                  {Array.from(
+                    ipPhones.reduce((acc: Set<string>, phone) => {
+                      if (phone.office_name) acc.add(phone.office_name);
+                      return acc;
+                    }, new Set())
+                  ).map((office) => (
+                    <SelectItem key={office} value={office}>
+                      {office}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+                <SelectTrigger className="w-40 border-primary/30">
+                  <SelectValue placeholder="Filter by Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Departments</SelectItem>
+                  {filterOffice && filterOffice !== "__all__"
+                    ? Array.from(
+                        ipPhones
+                          .filter(p => p.office_name === filterOffice)
+                          .reduce((acc: Set<string>, phone) => {
+                            if (phone.department_name) acc.add(phone.department_name);
+                            return acc;
+                          }, new Set())
+                      ).map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))
+                    : Array.from(
+                        ipPhones.reduce((acc: Set<string>, phone) => {
+                          if (phone.department_name) acc.add(phone.department_name);
+                          return acc;
+                        }, new Set())
+                      ).map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
             {/* Print Theme Selector */}
             <Select value={printTheme} onValueChange={setPrintTheme}>
               <SelectTrigger className="w-32 border-primary/30">
@@ -469,6 +650,13 @@ const IPPhoneList = () => {
             <Button variant="outline" onClick={handlePrint} className="border-primary/30 text-primary hover:bg-primary/10 no-print">
               <Printer className="h-4 w-4 mr-2" />
               Print
+            </Button>
+            <Button 
+              onClick={handlePrintAll}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print All
             </Button>
             <Button variant="outline" onClick={handleExportData} className="border-primary/30 text-primary hover:bg-primary/10">
               <Download className="h-4 w-4 mr-2" />
@@ -494,6 +682,7 @@ const IPPhoneList = () => {
                 {renderForm()}
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </div>
 
