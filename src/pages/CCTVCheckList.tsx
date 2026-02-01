@@ -650,16 +650,50 @@ const CCTVCheckList = () => {
 
     const updatedCameras = [...(selectedNvr.cameras || [])];
     if (editingCameraIndex !== null) {
+      // Edit mode
       updatedCameras[editingCameraIndex] = {
         ...updatedCameras[editingCameraIndex],
         ...cameraFormData,
       };
+    } else {
+      // Add mode
+      const newCamera: NVRCamera = {
+        id: Math.max(...updatedCameras.map(c => c.id), 0) + 1,
+        ...cameraFormData,
+      };
+      updatedCameras.push(newCamera);
     }
 
     setSelectedNvr({ ...selectedNvr, cameras: updatedCameras });
     dbService.updateNVR(selectedNvr.id, { cameras: updatedCameras });
-    toast({ title: "Camera Updated", description: "Camera details have been updated." });
+    const message = editingCameraIndex !== null ? "Camera Updated" : "Camera Added";
+    const description = editingCameraIndex !== null ? "Camera details have been updated." : "New camera has been added.";
+    toast({ title: message, description: description });
     resetCameraForm();
+  };
+
+  const handleDeleteCamera = (index: number) => {
+    if (!selectedNvr) return;
+
+    if (window.confirm("Are you sure you want to delete this camera location?")) {
+      const updatedCameras = selectedNvr.cameras.filter((_, i) => i !== index);
+      setSelectedNvr({ ...selectedNvr, cameras: updatedCameras });
+      dbService.updateNVR(selectedNvr.id, { cameras: updatedCameras });
+      toast({ title: "Camera Deleted", description: "Camera location has been deleted." });
+    }
+  };
+
+  const handleAddCamera = () => {
+    setCameraFormData({
+      camera_id: "",
+      location_name: "",
+      camera_position: "OK",
+      camera_recordings: "OK",
+      clear_vision: "OK",
+      remarks: "",
+    });
+    setEditingCameraIndex(null);
+    setIsCameraDialogOpen(true);
   };
 
   const handleCreateChecklist = async () => {
@@ -1973,45 +2007,6 @@ const CCTVCheckList = () => {
         </Card>
       )}
 
-      {/* Camera Setup Table */}
-      <Card className="no-print">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Camera className="h-5 w-5" />
-            Camera Setup ({selectedNvr.cameras?.length || 0} Cameras)
-          </CardTitle>
-          <CardDescription>Configure camera locations for this NVR</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">SL</TableHead>
-                  <TableHead className="w-20">Camera ID</TableHead>
-                  <TableHead>Location Name</TableHead>
-                  <TableHead className="w-24">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(selectedNvr.cameras || []).map((camera, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell className="font-medium text-primary">{camera.camera_id}</TableCell>
-                    <TableCell>{camera.location_name || "-"}</TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => handleEditCamera(camera, index)}>
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Daily Checklists */}
       <Card className="no-print">
         <CardHeader>
@@ -2157,12 +2152,68 @@ const CCTVCheckList = () => {
         </CardContent>
       </Card>
 
-      {/* Edit Camera Dialog */}
+      {/* Camera Setup Table */}
+      <Card className="no-print">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              Camera Setup ({selectedNvr.cameras?.length || 0} Cameras)
+            </CardTitle>
+            <CardDescription>Configure camera locations for this NVR</CardDescription>
+          </div>
+          <Button onClick={handleAddCamera} className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Camera
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">SL</TableHead>
+                  <TableHead className="w-20">Camera ID</TableHead>
+                  <TableHead>Location Name</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(selectedNvr.cameras || [])
+                  .sort((a, b) => {
+                    const aNum = parseInt(a.camera_id.replace(/\D/g, '')) || 0;
+                    const bNum = parseInt(b.camera_id.replace(/\D/g, '')) || 0;
+                    return aNum - bNum;
+                  })
+                  .map((camera, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell className="font-medium text-primary">{camera.camera_id}</TableCell>
+                      <TableCell>{camera.location_name || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEditCamera(camera, selectedNvr.cameras.indexOf(camera))}>
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDeleteCamera(selectedNvr.cameras.indexOf(camera))} className="border-red-200 text-red-700 hover:bg-red-50">
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Camera Dialog */}
       <Dialog open={isCameraDialogOpen} onOpenChange={setIsCameraDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Camera Location</DialogTitle>
-            <DialogDescription>Update camera location details</DialogDescription>
+            <DialogTitle>{editingCameraIndex !== null ? "Edit Camera Location" : "Add New Camera"}</DialogTitle>
+            <DialogDescription>{editingCameraIndex !== null ? "Update camera location details" : "Add a new camera to this NVR"}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCameraSubmit} className="space-y-4">
             <div>
@@ -2174,13 +2225,12 @@ const CCTVCheckList = () => {
               />
             </div>
             <div>
-              <Label htmlFor="location_name">Location Name *</Label>
+              <Label htmlFor="location_name">Location Name</Label>
               <Input
                 id="location_name"
                 value={cameraFormData.location_name}
                 onChange={(e) => setCameraFormData({ ...cameraFormData, location_name: e.target.value })}
                 placeholder="e.g., Gate-01-Pocket Gate"
-                required
               />
             </div>
             <DialogFooter>
