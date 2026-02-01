@@ -213,6 +213,32 @@ const CCTVCheckList = () => {
     savePrintHeaderSettings();
   }, [printHeader]);
 
+  // Auto-apply logic: if location name has content, set dropdowns to OK
+  useEffect(() => {
+    const updatedCameras = checklistCameras.map(cam => {
+      if (cam.location_name && cam.location_name.trim() !== "") {
+        return {
+          ...cam,
+          camera_position: cam.camera_position === "Nil" ? "OK" : cam.camera_position,
+          camera_recordings: cam.camera_recordings === "Nil" ? "OK" : cam.camera_recordings,
+          clear_vision: cam.clear_vision === "Nil" ? "OK" : cam.clear_vision,
+        };
+      }
+      return cam;
+    });
+    
+    // Only update if something changed
+    const hasChanges = updatedCameras.some((cam, idx) => 
+      cam.camera_position !== checklistCameras[idx].camera_position ||
+      cam.camera_recordings !== checklistCameras[idx].camera_recordings ||
+      cam.clear_vision !== checklistCameras[idx].clear_vision
+    );
+    
+    if (hasChanges) {
+      setChecklistCameras(updatedCameras);
+    }
+  }, [isChecklistDialogOpen || isViewChecklistOpen]);
+
   const loadData = async () => {
     const nvrsData = await dbService.getNVRs();
     const checklistsData = await dbService.getCCTVChecklists();
@@ -390,12 +416,12 @@ const CCTVCheckList = () => {
       }
     }
 
-    // Check for existing merges
-    const column = columns[0] as keyof ColumnSettings;
+    const column = columns[0];
+    
+    // Check for overlapping merges
     const hasOverlap = mergedCells.some(m =>
       m.column === column &&
-      ((startRow >= m.startRow && startRow <= m.endRow) ||
-        (endRow >= m.startRow && endRow <= m.endRow))
+      !((endRow < m.startRow) || (startRow > m.endRow))
     );
 
     if (hasOverlap) {
@@ -405,7 +431,8 @@ const CCTVCheckList = () => {
 
     setMergedCells(prev => [...prev, { startRow, endRow, column }]);
     setSelectedCellsForMerge([]);
-    toast({ title: "Success", description: "Cells merged successfully" });
+    setIsMergeMode(false);
+    toast({ title: "Success", description: `Merged ${endRow - startRow + 1} cells` });
   };
 
   const handleUnmergeAll = () => {
@@ -417,10 +444,16 @@ const CCTVCheckList = () => {
     return mergedCells.find(m => m.column === column && row >= m.startRow && row <= m.endRow);
   };
 
-  const shouldRenderCell = (row: number, column: string) => {
+  const isMergedRowToSkip = (row: number, column: string) => {
     const merge = isCellMerged(row, column);
-    if (!merge) return true;
-    return row === merge.startRow;
+    if (!merge) return false;
+    return row !== merge.startRow;
+  };
+
+  const getRowSpan = (row: number, column: string) => {
+    const merge = isCellMerged(row, column);
+    if (!merge || row !== merge.startRow) return 1;
+    return merge.endRow - merge.startRow + 1;
   };
 
   const getMergeRowSpan = (row: number, column: string) => {
@@ -451,17 +484,54 @@ const CCTVCheckList = () => {
 
     const pages = filtered.map(checklist => {
       const nvr = nvrs.find(n => n.id === checklist.nvr_id);
-      const cameraRows = checklist.cameras.map((cam, idx) => `
+      // Get merges for this specific checklist
+      const checklistMerges = (checklist as any).mergedCells || [];
+      const cameraRows = checklist.cameras.map((cam, idx) => {
+        // Check if this row is part of a merge and not the first row
+        const isMergedRow = checklistMerges.some(m =>
+          m.column === 'remarks' &&
+          idx >= m.startRow &&
+          idx <= m.endRow &&
+          idx !== m.startRow
+        );
+
+        let remarksRowSpan = 1;
+        const merge = checklistMerges.find(m =>
+          m.column === 'remarks' &&
+          idx >= m.startRow &&
+          idx <= m.endRow &&
+          idx === m.startRow
+        );
+        if (merge) {
+          remarksRowSpan = merge.endRow - merge.startRow + 1;
+        }
+
+        if (isMergedRow) {
+          // Render row with all data except remarks cell (which spans from first row)
+          return `
         <tr style="height: ${rowHeight}px;">
           <td style="border: 1px solid #000; padding: 3px; text-align: center; width: ${columnWidths.sl}px; font-size: ${fontSize}px;">${idx + 1}</td>
           <td style="border: 1px solid #000; padding: 3px; text-align: center; width: ${columnWidths.cameraId}px; font-weight: bold; font-size: ${fontSize}px;">${cam.camera_id}</td>
-          <td style="border: 1px solid #000; padding: 3px; text-align: left; width: ${columnWidths.locationName}px; font-size: ${fontSize}px;">${cam.location_name || "-"}</td>
+          <td style="border: 1px solid #000; padding: 3px; text-align: left; width: ${columnWidths.locationName}px; font-size: ${fontSize}px;">${cam.location_name || "Nil"}</td>
           <td style="border: 1px solid #000; padding: 3px; text-align: center; width: ${columnWidths.cameraPosition}px; font-size: ${fontSize}px;">${cam.camera_position}</td>
           <td style="border: 1px solid #000; padding: 3px; text-align: center; width: ${columnWidths.cameraRecordings}px; font-size: ${fontSize}px;">${cam.camera_recordings}</td>
           <td style="border: 1px solid #000; padding: 3px; text-align: center; width: ${columnWidths.clearVision}px; font-size: ${fontSize}px;">${cam.clear_vision}</td>
-          <td style="border: 1px solid #000; padding: 3px; text-align: left; width: ${columnWidths.remarks}px; font-size: ${fontSize}px;">${cam.remarks || ""}</td>
         </tr>
-      `).join("");
+      `;
+        }
+
+        return `
+        <tr style="height: ${rowHeight}px;">
+          <td style="border: 1px solid #000; padding: 3px; text-align: center; width: ${columnWidths.sl}px; font-size: ${fontSize}px;">${idx + 1}</td>
+          <td style="border: 1px solid #000; padding: 3px; text-align: center; width: ${columnWidths.cameraId}px; font-weight: bold; font-size: ${fontSize}px;">${cam.camera_id}</td>
+          <td style="border: 1px solid #000; padding: 3px; text-align: left; width: ${columnWidths.locationName}px; font-size: ${fontSize}px;">${cam.location_name || "Nil"}</td>
+          <td style="border: 1px solid #000; padding: 3px; text-align: center; width: ${columnWidths.cameraPosition}px; font-size: ${fontSize}px;">${cam.camera_position}</td>
+          <td style="border: 1px solid #000; padding: 3px; text-align: center; width: ${columnWidths.cameraRecordings}px; font-size: ${fontSize}px;">${cam.camera_recordings}</td>
+          <td style="border: 1px solid #000; padding: 3px; text-align: center; width: ${columnWidths.clearVision}px; font-size: ${fontSize}px;">${cam.clear_vision}</td>
+          <td style="border: 1px solid #000; padding: 3px; text-align: left; width: ${columnWidths.remarks}px; font-size: ${fontSize}px;" rowspan="${remarksRowSpan}">${cam.remarks || ""}</td>
+        </tr>
+      `;
+      }).join("");
 
       return `
         <div class="page">
@@ -490,9 +560,9 @@ const CCTVCheckList = () => {
             <tbody>${cameraRows}</tbody>
           </table>
           <div class="signature-section">
-            <div class="sig-block"><div class="sig-name">${checklist.checked_by}</div></div>
-            <div class="sig-block"><div class="sig-name">${checklist.verified_by}</div></div>
-            <div class="sig-block"><div class="sig-name">${checklist.approved_by}</div></div>
+            <div class="sig-block"><div class="sig-name" style="font-weight: bold; font-size: ${fontSize}px;">${checklist.checked_by}</div></div>
+            <div class="sig-block"><div class="sig-name" style="font-weight: bold; font-size: ${fontSize}px;">${checklist.verified_by}</div></div>
+            <div class="sig-block"><div class="sig-name" style="font-weight: bold; font-size: ${fontSize}px;">${checklist.approved_by}</div></div>
           </div>
         </div>
       `;
@@ -508,20 +578,20 @@ const CCTVCheckList = () => {
             @media print { html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: Arial, sans-serif; font-size: 9px; }
-            .page { padding: 2mm 3mm; page-break-after: always; width: 210mm; min-height: 290mm; max-height: 297mm; overflow: hidden; }
+            .page { padding: 0.5mm 1mm; page-break-after: always; width: 210mm; min-height: 296.5mm; max-height: 297mm; overflow: hidden; }
             .page:last-child { page-break-after: auto; }
-            .header { text-align: center; margin-bottom: 2px; }
+            .header { text-align: center; margin-bottom: 0.5mm; }
             .header img { height: 30px; }
-            .header h1 { font-size: ${printHeader.companyFontSize}px; color: #1a365d; margin: 1px 0; }
-            .header h2 { font-size: ${printHeader.reportFontSize}px; margin: 1px 0; }
-            .info-row { display: flex; justify-content: space-between; font-weight: bold; margin: 2px 0; font-size: 9px; }
+            .header h1 { font-size: ${printHeader.companyFontSize}px; color: #1a365d; margin: 0px 0; }
+            .header h2 { font-size: ${printHeader.reportFontSize}px; margin: 0px 0; }
+            .info-row { display: flex; justify-content: space-between; font-weight: bold; margin: 0.5mm 0; font-size: 9px; }
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
             th { background: #e8e8e8; border: 1px solid #000; padding: 1px; font-weight: bold; font-size: 7px; }
-            .signature-section { display: flex; justify-content: space-between; position: absolute; bottom: 5mm; left: 3mm; right: 3mm; }
+            .signature-section { display: flex; justify-content: space-between; position: absolute; bottom: 1mm; left: 2mm; right: 2mm; width: calc(100% - 4mm); }
             .sig-block { text-align: center; flex: 1; padding: 0 6px; }
             .sig-space { height: ${printHeader.signatureLineHeight}px; margin-bottom: 2px; }
             .sig-label { font-size: 7px; font-weight: bold; border-top: 1px solid #000; padding-top: 3px; }
-            .sig-name { font-size: 6px; color: #444; margin-top: 1px; }
+            .sig-name { font-size: 6px; color: #444; margin-top: 1px; font-weight: bold; border-top: 1px solid #000; padding-top: 3px; }
             .page { position: relative; }
           </style>
         </head>
@@ -597,9 +667,9 @@ const CCTVCheckList = () => {
 
     const cameras = selectedNvr.cameras.map(cam => ({
       ...cam,
-      camera_position: "OK",
-      camera_recordings: "OK",
-      clear_vision: "OK",
+      camera_position: "Nil",
+      camera_recordings: "Nil",
+      clear_vision: "Nil",
       remarks: "",
     }));
     setChecklistCameras(cameras);
@@ -609,6 +679,9 @@ const CCTVCheckList = () => {
       verified_by: "Asst. Manager(IT)",
       approved_by: "Head Of HR,Admin",
     });
+    setMergedCells([]); // Clear merges for new checklist
+    setSelectedCellsForMerge([]);
+    setIsMergeMode(false);
     setIsChecklistDialogOpen(true);
   };
 
@@ -636,6 +709,7 @@ const CCTVCheckList = () => {
       checked_by: checklistFormData.checked_by,
       verified_by: checklistFormData.verified_by,
       approved_by: checklistFormData.approved_by,
+      mergedCells: mergedCells,
     };
 
     await dbService.addCCTVChecklist(newChecklist);
@@ -653,6 +727,11 @@ const CCTVCheckList = () => {
       verified_by: checklist.verified_by,
       approved_by: checklist.approved_by,
     });
+    // Load merge settings for this specific checklist
+    const mergesData = (checklist as any).mergedCells || [];
+    setMergedCells(mergesData);
+    setSelectedCellsForMerge([]);
+    setIsMergeMode(false);
     setIsViewChecklistOpen(true);
   };
 
@@ -665,6 +744,7 @@ const CCTVCheckList = () => {
       checked_by: checklistFormData.checked_by,
       verified_by: checklistFormData.verified_by,
       approved_by: checklistFormData.approved_by,
+      mergedCells: mergedCells,
     });
     toast({ title: "Checklist Updated", description: "Checklist has been updated successfully." });
     await loadData();
@@ -889,17 +969,55 @@ const CCTVCheckList = () => {
       });
     }
 
-    const cameraRows = camerasToShow.slice(0, 32).map((cam, idx) => `
+    const cameraRows = camerasToShow.slice(0, 32).map((cam, idx) => {
+      // Get merges for this specific checklist
+      const checklistMerges = (checklist as any).mergedCells || [];
+      
+      // Check if this row is part of a merge and not the first row
+      const isMergedRow = checklistMerges.some(m =>
+        m.column === 'remarks' &&
+        idx >= m.startRow &&
+        idx <= m.endRow &&
+        idx !== m.startRow
+      );
+
+      let remarksRowSpan = 1;
+      const merge = checklistMerges.find(m =>
+        m.column === 'remarks' &&
+        idx >= m.startRow &&
+        idx <= m.endRow &&
+        idx === m.startRow
+      );
+      if (merge) {
+        remarksRowSpan = merge.endRow - merge.startRow + 1;
+      }
+
+      if (isMergedRow) {
+        // Render row with all data except remarks cell (which spans from first row)
+        return `
       <tr style="height: ${printRowHeight}px;">
         <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${idx + 1}</td>
         <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-weight: bold; font-size: ${printFontSize}px;">${cam.camera_id}</td>
-        <td style="border: 1px solid #000; padding: 1px 2px; text-align: left; font-size: ${printFontSize}px;">${cam.location_name || ""}</td>
+        <td style="border: 1px solid #000; padding: 1px 2px; text-align: left; font-size: ${printFontSize}px;">${cam.location_name || "Nil"}</td>
         <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.camera_position}</td>
         <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.camera_recordings}</td>
         <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.clear_vision}</td>
-        <td style="border: 1px solid #000; padding: 1px 2px; text-align: left; font-size: ${printFontSize}px;">${cam.remarks || ""}</td>
       </tr>
-    `).join("");
+    `;
+      }
+
+      return `
+      <tr style="height: ${printRowHeight}px;">
+        <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${idx + 1}</td>
+        <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-weight: bold; font-size: ${printFontSize}px;">${cam.camera_id}</td>
+        <td style="border: 1px solid #000; padding: 1px 2px; text-align: left; font-size: ${printFontSize}px;">${cam.location_name || "Nil"}</td>
+        <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.camera_position}</td>
+        <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.camera_recordings}</td>
+        <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.clear_vision}</td>
+        <td style="border: 1px solid #000; padding: 1px 2px; text-align: left; font-size: ${printFontSize}px;" rowspan="${remarksRowSpan}">${cam.remarks || ""}</td>
+      </tr>
+    `;
+    }).join("");
 
     const content = `
       <!DOCTYPE html>
@@ -921,23 +1039,22 @@ const CCTVCheckList = () => {
             body { 
               font-family: Arial, sans-serif; 
               font-size: ${printFontSize}px; 
-              padding: 3mm;
-              background: white;
-              width: 210mm;
-              height: 297mm;
+              padding: 0.5mm;
+              position: relative;
+              min-height: 296.5mm;
             }
-            .header { text-align: center; margin-bottom: 4px; }
+            .header { text-align: center; margin-bottom: 0.5mm; }
             .header img { height: 35px; }
-            .header h1 { font-size: 13px; color: #1a365d; margin: 2px 0; }
-            .header h2 { font-size: 10px; margin: 2px 0; }
-            .info-row { display: flex; justify-content: space-between; font-weight: bold; margin: 4px 0; font-size: 10px; }
+            .header h1 { font-size: 13px; color: #1a365d; margin: 0px 0; }
+            .header h2 { font-size: 10px; margin: 0px 0; }
+            .info-row { display: flex; justify-content: space-between; font-weight: bold; margin: 0.5mm 0; font-size: 10px; }
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
             th { background: #e8e8e8; border: 1px solid #000; padding: 2px; font-weight: bold; font-size: 8px; }
             .signature-section { 
               display: flex; 
               justify-content: space-between; 
               position: absolute;
-              bottom: 8mm;
+              bottom: 0.5mm;
               left: 5mm;
               right: 5mm;
             }
@@ -960,6 +1077,9 @@ const CCTVCheckList = () => {
               font-size: 7px;
               color: #444;
               margin-top: 1px;
+              font-weight: bold;
+              border-top: 1px solid #000;
+              padding-top: 3px;
             }
             body {
               position: relative;
@@ -997,15 +1117,15 @@ const CCTVCheckList = () => {
           <div class="signature-section">
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-name">${checklist.checked_by}</div>
+              <div class="sig-name" style="font-weight: bold;">${checklist.checked_by}</div>
             </div>
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-name">${checklist.verified_by}</div>
+              <div class="sig-name" style="font-weight: bold;">${checklist.verified_by}</div>
             </div>
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-name">${checklist.approved_by}</div>
+              <div class="sig-name" style="font-weight: bold;">${checklist.approved_by}</div>
             </div>
           </div>
         </body>
@@ -1067,17 +1187,55 @@ const CCTVCheckList = () => {
         });
       }
 
-      const cameraRows = camerasToShow.slice(0, 32).map((cam, idx) => `
+      const cameraRows = camerasToShow.slice(0, 32).map((cam, idx) => {
+        // Get merges for this specific checklist
+        const checklistMerges = (checklist as any).mergedCells || [];
+        
+        // Check if this row is part of a merge and not the first row
+        const isMergedRow = checklistMerges.some(m =>
+          m.column === 'remarks' &&
+          idx >= m.startRow &&
+          idx <= m.endRow &&
+          idx !== m.startRow
+        );
+
+        let remarksRowSpan = 1;
+        const merge = checklistMerges.find(m =>
+          m.column === 'remarks' &&
+          idx >= m.startRow &&
+          idx <= m.endRow &&
+          idx === m.startRow
+        );
+        if (merge) {
+          remarksRowSpan = merge.endRow - merge.startRow + 1;
+        }
+
+        if (isMergedRow) {
+          // Render row with all data except remarks cell (which spans from first row)
+          return `
         <tr style="height: ${printRowHeight}px;">
           <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${idx + 1}</td>
           <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-weight: bold; font-size: ${printFontSize}px;">${cam.camera_id}</td>
-          <td style="border: 1px solid #000; padding: 1px 2px; text-align: left; font-size: ${printFontSize}px;">${cam.location_name || ""}</td>
+          <td style="border: 1px solid #000; padding: 1px 2px; text-align: left; font-size: ${printFontSize}px;">${cam.location_name || "Nil"}</td>
           <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.camera_position}</td>
           <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.camera_recordings}</td>
           <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.clear_vision}</td>
-          <td style="border: 1px solid #000; padding: 1px 2px; text-align: left; font-size: ${printFontSize}px;">${cam.remarks || ""}</td>
         </tr>
-      `).join("");
+      `;
+        }
+
+        return `
+        <tr style="height: ${printRowHeight}px;">
+          <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${idx + 1}</td>
+          <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-weight: bold; font-size: ${printFontSize}px;">${cam.camera_id}</td>
+          <td style="border: 1px solid #000; padding: 1px 2px; text-align: left; font-size: ${printFontSize}px;">${cam.location_name || "Nil"}</td>
+          <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.camera_position}</td>
+          <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.camera_recordings}</td>
+          <td style="border: 1px solid #000; padding: 1px 2px; text-align: center; font-size: ${printFontSize}px;">${cam.clear_vision}</td>
+          <td style="border: 1px solid #000; padding: 1px 2px; text-align: left; font-size: ${printFontSize}px;" rowspan="${remarksRowSpan}">${cam.remarks || ""}</td>
+        </tr>
+      `;
+      }).join("");
 
       return `
         <div class="page">
@@ -1110,15 +1268,15 @@ const CCTVCheckList = () => {
           <div class="signature-section">
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-name">${checklist.checked_by}</div>
+              <div class="sig-name" style="font-weight: bold;">${checklist.checked_by}</div>
             </div>
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-name">${checklist.verified_by}</div>
+              <div class="sig-name" style="font-weight: bold;">${checklist.verified_by}</div>
             </div>
             <div class="sig-block">
               <div class="sig-space"></div>
-              <div class="sig-name">${checklist.approved_by}</div>
+              <div class="sig-name" style="font-weight: bold;">${checklist.approved_by}</div>
             </div>
           </div>
         </div>
@@ -1143,20 +1301,20 @@ const CCTVCheckList = () => {
             }
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: Arial, sans-serif; font-size: ${printFontSize}px; }
-            .page { padding: 2mm 3mm; page-break-after: always; width: 210mm; min-height: 290mm; max-height: 297mm; overflow: hidden; }
+            .page { padding: 0.5mm 1mm; page-break-after: always; width: 210mm; min-height: 296.5mm; max-height: 297mm; overflow: hidden; }
             .page:last-child { page-break-after: auto; }
-            .header { text-align: center; margin-bottom: 2px; }
+            .header { text-align: center; margin-bottom: 0.5mm; }
             .header img { height: 30px; }
-            .header h1 { font-size: ${printHeader.companyFontSize}px; color: #1a365d; margin: 1px 0; }
-            .header h2 { font-size: ${printHeader.reportFontSize}px; margin: 1px 0; }
-            .info-row { display: flex; justify-content: space-between; font-weight: bold; margin: 2px 0; font-size: 9px; }
+            .header h1 { font-size: ${printHeader.companyFontSize}px; color: #1a365d; margin: 0px 0; }
+            .header h2 { font-size: ${printHeader.reportFontSize}px; margin: 0px 0; }
+            .info-row { display: flex; justify-content: space-between; font-weight: bold; margin: 0.5mm 0; font-size: 9px; }
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
             th { background: #e8e8e8; border: 1px solid #000; padding: 1px; font-weight: bold; font-size: 7px; }
-            .signature-section { display: flex; justify-content: space-between; position: absolute; bottom: 5mm; left: 3mm; right: 3mm; }
+            .signature-section { display: flex; justify-content: space-between; position: absolute; bottom: 1mm; left: 2mm; right: 2mm; width: calc(100% - 4mm); }
             .sig-block { text-align: center; flex: 1; padding: 0 6px; }
             .sig-space { height: ${printHeader.signatureLineHeight}px; margin-bottom: 2px; }
             .sig-label { font-size: 7px; font-weight: bold; border-top: 1px solid #000; padding-top: 3px; }
-            .sig-name { font-size: 6px; color: #444; margin-top: 1px; }
+            .sig-name { font-size: 6px; color: #444; margin-top: 1px; font-weight: bold; border-top: 1px solid #000; padding-top: 3px; }
             .page { position: relative; }
           </style>
         </head>
@@ -1210,6 +1368,20 @@ const CCTVCheckList = () => {
   const updateChecklistCamera = (index: number, field: keyof NVRCamera, value: string) => {
     const updated = [...checklistCameras];
     updated[index] = { ...updated[index], [field]: value };
+    
+    // If location_name has content, automatically set camera checks to "OK"
+    if (field === "location_name" && value.trim() !== "") {
+      updated[index].camera_position = "OK";
+      updated[index].camera_recordings = "OK";
+      updated[index].clear_vision = "OK";
+    }
+    // If location_name is cleared, reset checks to "Nil"
+    else if (field === "location_name" && value.trim() === "") {
+      updated[index].camera_position = "Nil";
+      updated[index].camera_recordings = "Nil";
+      updated[index].clear_vision = "Nil";
+    }
+    
     setChecklistCameras(updated);
   };
 
@@ -2029,13 +2201,56 @@ const CCTVCheckList = () => {
       }}>
         <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5" />
-              {isViewChecklistOpen ? "View/Edit Checklist" : "New Daily Checklist"} - NVR-{selectedNvr.nvr_number}
-            </DialogTitle>
-            <DialogDescription>
-              Date: {formatDate(checklistFormData.date)} | Drag column headers to resize
-            </DialogDescription>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2 flex-1">
+                <FileSpreadsheet className="h-5 w-5" />
+                <div>
+                  <DialogTitle>
+                    {isViewChecklistOpen ? "View/Edit Checklist" : "New Daily Checklist"} - NVR-{selectedNvr.nvr_number}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Date: {formatDate(checklistFormData.date)} | Drag column headers to resize
+                  </DialogDescription>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={isMergeMode ? "default" : "outline"}
+                  onClick={() => {
+                    setIsMergeMode(!isMergeMode);
+                    setSelectedCellsForMerge([]);
+                  }}
+                  className="flex items-center gap-1"
+                >
+                  <Merge className="h-4 w-4" />
+                  Merge
+                </Button>
+                {isMergeMode && selectedCellsForMerge.length > 1 && (
+                  <Button
+                    size="sm"
+                    onClick={handleMergeCells}
+                    className="flex items-center gap-1"
+                  >
+                    Apply
+                  </Button>
+                )}
+                {mergedCells.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      setMergedCells([]);
+                      toast({ title: "Success", description: "All merges cleared" });
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    <SplitSquareHorizontal className="h-4 w-4" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
           </DialogHeader>
 
           <div className="flex-1 overflow-auto">
@@ -2133,105 +2348,123 @@ const CCTVCheckList = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {checklistCameras.map((camera, index) => (
-                    <tr
-                      key={index}
-                      className="hover:bg-muted/50"
-                      style={{ height: rowHeight }}
-                    >
-                      <td
-                        className="border border-border p-1 text-center font-medium"
-                        style={{
-                          whiteSpace: wordWrap ? "normal" : "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis"
-                        }}
+                  {checklistCameras.map((camera, index) => {
+                    // Skip rendering merged rows (except the first row of the merge which has rowspan)
+                    if (isMergedRowToSkip(index, 'remarks')) {
+                      return null;
+                    }
+
+                    const remarksRowSpan = getRowSpan(index, 'remarks');
+                    const isRemarksSelected = isMergeMode && selectedCellsForMerge.some(c => c.row === index && c.column === 'remarks');
+
+                    return (
+                      <tr
+                        key={index}
+                        className="hover:bg-muted/50"
+                        style={{ height: rowHeight }}
                       >
-                        {index + 1}
-                      </td>
-                      <td
-                        className="border border-border p-1 text-center font-bold text-primary"
-                        style={{
-                          whiteSpace: wordWrap ? "normal" : "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis"
-                        }}
-                      >
-                        {camera.camera_id}
-                      </td>
-                      <td
-                        className="border border-border p-1 text-blue-600"
-                        style={{
-                          whiteSpace: wordWrap ? "normal" : "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis"
-                        }}
-                      >
-                        {camera.location_name || "-"}
-                      </td>
-                      <td className="border border-border p-1">
-                        <Select
-                          value={camera.camera_position}
-                          onValueChange={(value) => updateChecklistCamera(index, "camera_position", value)}
+                        <td
+                          className="border border-border p-1 text-center font-medium"
+                          style={{
+                            whiteSpace: wordWrap ? "normal" : "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis"
+                          }}
                         >
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="OK">OK</SelectItem>
-                            <SelectItem value="NOT OK">NOT OK</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="border border-border p-1">
-                        <Select
-                          value={camera.camera_recordings}
-                          onValueChange={(value) => updateChecklistCamera(index, "camera_recordings", value)}
+                          {index + 1}
+                        </td>
+                        <td
+                          className="border border-border p-1 text-center font-bold text-primary"
+                          style={{
+                            whiteSpace: wordWrap ? "normal" : "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis"
+                          }}
                         >
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="OK">OK</SelectItem>
-                            <SelectItem value="NOT OK">NOT OK</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="border border-border p-1">
-                        <Select
-                          value={camera.clear_vision}
-                          onValueChange={(value) => updateChecklistCamera(index, "clear_vision", value)}
-                        >
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="OK">OK</SelectItem>
-                            <SelectItem value="NOT OK">NOT OK</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="border border-border p-1">
-                        <div className="relative">
+                          {camera.camera_id}
+                        </td>
+                        <td className="border border-border p-1">
                           <Input
-                            value={camera.remarks}
-                            onChange={(e) => updateChecklistCamera(index, "remarks", e.target.value)}
-                            placeholder="Remarks..."
+                            value={camera.location_name}
+                            onChange={(e) => updateChecklistCamera(index, "location_name", e.target.value)}
+                            placeholder="Nil"
                             className="h-7 text-xs"
-                            list={`remarks-${index}`}
-                            style={{
-                              whiteSpace: wordWrap ? "normal" : "nowrap"
-                            }}
                           />
-                          <datalist id={`remarks-${index}`}>
-                            {getPreviousRemarks(camera.camera_id).map((remark, idx) => (
-                              <option key={idx} value={remark} />
-                            ))}
-                          </datalist>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="border border-border p-1">
+                          <Select
+                            value={camera.camera_position}
+                            onValueChange={(value) => updateChecklistCamera(index, "camera_position", value)}
+                          >
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="OK">OK</SelectItem>
+                              <SelectItem value="NOT OK">NOT OK</SelectItem>
+                              <SelectItem value="Nil">Nil</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="border border-border p-1">
+                          <Select
+                            value={camera.camera_recordings}
+                            onValueChange={(value) => updateChecklistCamera(index, "camera_recordings", value)}
+                          >
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="OK">OK</SelectItem>
+                              <SelectItem value="NOT OK">NOT OK</SelectItem>
+                              <SelectItem value="Nil">Nil</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="border border-border p-1">
+                          <Select
+                            value={camera.clear_vision}
+                            onValueChange={(value) => updateChecklistCamera(index, "clear_vision", value)}
+                          >
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="OK">OK</SelectItem>
+                              <SelectItem value="NOT OK">NOT OK</SelectItem>
+                              <SelectItem value="Nil">Nil</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td
+                          className={`border border-border p-1 cursor-pointer transition-colors ${isRemarksSelected ? 'bg-blue-200' : ''}`}
+                          onClick={() => isMergeMode && handleCellClickForMerge(index, 'remarks')}
+                          rowSpan={remarksRowSpan}
+                          style={{
+                            height: remarksRowSpan === 1 ? undefined : rowHeight * remarksRowSpan
+                          }}
+                        >
+                          <div className="relative">
+                            <Input
+                              value={camera.remarks}
+                              onChange={(e) => updateChecklistCamera(index, "remarks", e.target.value)}
+                              placeholder="Remarks..."
+                              className="h-7 text-xs"
+                              list={`remarks-${index}`}
+                              style={{
+                                whiteSpace: wordWrap ? "normal" : "nowrap"
+                              }}
+                            />
+                            <datalist id={`remarks-${index}`}>
+                              {getPreviousRemarks(camera.camera_id).map((remark, idx) => (
+                                <option key={idx} value={remark} />
+                              ))}
+                            </datalist>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
