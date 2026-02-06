@@ -51,7 +51,7 @@ const Navbar = () => {
               </div>
               <div className="flex flex-col">
                 <span className="font-semibold text-base text-white drop-shadow-md tracking-wide">MNR Group IT</span>
-                <div className="text-white/80 text-[10px] drop-shadow-sm font-medium">IT Assets Management</div>
+                <div className="text-white/80 text-[10px] drop-shadow-sm font-medium"></div>
               </div>
             </Link>
           </div>

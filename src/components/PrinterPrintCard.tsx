@@ -39,15 +39,7 @@ const PrinterPrintCard = ({ printers, unitName, departmentName }: PrinterPrintCa
 
   return (
     <>
-      {/* Print Button - Hidden in print */}
-      <button
-        onClick={handlePrint}
-        className="print:hidden fixed bottom-4 right-4 bg-primary text-primary-foreground px-6 py-3 rounded-full shadow-lg hover:bg-primary/90 transition-all z-50 flex items-center gap-2"
-      >
-        <Printer className="h-5 w-5" />
-        Print Printers List
-      </button>
-
+      
       {/* Print Content */}
       <div className="printer-print-content hidden print:block">
         {/* Header */}
