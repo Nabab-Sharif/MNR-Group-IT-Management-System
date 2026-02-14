@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Plus, Edit, Trash2, Download, ArrowLeft, Building2, Users, ChevronRight, Upload, Printer } from "lucide-react";
+import { Phone, Plus, Edit, Trash2, Download, ArrowLeft, Building2, Users, ChevronRight, Upload, Printer, X } from "lucide-react";
 import dbService from "@/services/dbService";
 import SearchFilter from "@/components/SearchFilter";
 import IPPhonePrintCard from "@/components/IPPhonePrintCard";
@@ -117,6 +117,14 @@ const IPPhoneList = () => {
     }
   };
 
+  const clearFilters = () => {
+    setFilterOffice("__all__");
+    setFilterDepartment("__all__");
+    setFilterStatus("all");
+    setSearchTerm("");
+    toast({ title: "Filters cleared", description: "All filters have been reset." });
+  };
+
   const resetForm = () => {
     setFormData({
       extension_number: "",
@@ -134,14 +142,27 @@ const IPPhoneList = () => {
 
   const getPhonesByOffice = () => {
     const officeGroups: { [key: string]: IPPhone[] } = {};
-    const filtered = searchTerm
-      ? ipPhones.filter(phone =>
-          phone.extension_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          phone.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          phone.office_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          phone.department_name?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      : ipPhones;
+    let filtered = ipPhones;
+
+    // Apply office filter
+    if (filterOffice && filterOffice !== "__all__") {
+      filtered = filtered.filter(phone => phone.office_name === filterOffice);
+    }
+
+    // Apply department filter
+    if (filterDepartment && filterDepartment !== "__all__") {
+      filtered = filtered.filter(phone => phone.department_name === filterDepartment);
+    }
+
+    // Apply search term
+    if (searchTerm) {
+      filtered = filtered.filter(phone =>
+        phone.extension_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        phone.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        phone.office_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        phone.department_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
     
     filtered.forEach((phone) => {
       if (phone.office_name) {
@@ -179,6 +200,16 @@ const IPPhoneList = () => {
   const getFilteredPhones = () => {
     let filtered = ipPhones;
 
+    // Apply Level 1 filters (dropdown)
+    if (filterOffice && filterOffice !== "__all__") {
+      filtered = filtered.filter((phone) => phone.office_name === filterOffice);
+    }
+
+    if (filterDepartment && filterDepartment !== "__all__") {
+      filtered = filtered.filter((phone) => phone.department_name === filterDepartment);
+    }
+
+    // Apply Level 3 filters (navigation)
     if (selectedOffice) {
       filtered = filtered.filter((phone) => phone.office_name === selectedOffice);
     }
@@ -301,9 +332,6 @@ const IPPhoneList = () => {
             <p style="font-size: 8px; color: #555; margin: 1px 0; font-weight: 500;">IP Phone Directory</p>
           </div>
 
-          <!-- Info Section -->
-
-
           <!-- Data Table -->
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 2mm;">
             <thead>
@@ -374,8 +402,85 @@ const IPPhoneList = () => {
     const printWindow = window.open("", "_blank", "width=900,height=700");
     if (!printWindow) return;
 
-    // Group phones by office
+    // Get filtered phones
     const phonesToPrint = getFilteredPhones();
+
+    // Check if filters are active - use single-page column layout if filters active
+    const hasFilters = (filterOffice && filterOffice !== "__all__") || (filterDepartment && filterDepartment !== "__all__") || searchTerm || (filterStatus && filterStatus !== "all");
+
+    // Single-page column layout for filtered data
+    if (hasFilters) {
+      const itemsHtml = phonesToPrint.map((phone) => `
+        <div class="ext-item">
+          <div class="ext-number">${phone.extension_number}</div>
+          <div class="ext-user">${phone.user_name}</div>
+          ${phone.designation ? `<div class="ext-designation">${phone.designation}</div>` : ''}
+          <div class="ext-dept">${phone.department_name || '-'}</div>
+        </div>
+      `).join('');
+
+      const content = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>IP Phone Extension List</title>
+          <style>
+            @page { size: A4; margin: 0; }
+            @media print { html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            html, body { font-family: 'Segoe UI', Arial, sans-serif; background: white; }
+            .page { width: 210mm; height: 297mm; padding: 8mm 6mm; display: flex; flex-direction: column; overflow: hidden; }
+            .header { text-align: center; margin-bottom: 4mm; padding-bottom: 3mm; border-bottom: 3px solid ${theme.primary}; flex-shrink: 0; }
+            .header img { height: 45px; width: auto; margin-bottom: 2mm; }
+            .header h1 { font-size: 18px; font-weight: 700; color: ${theme.primary}; margin: 0; }
+            .header p { font-size: 10px; color: #555; margin: 2mm 0 0 0; }
+            .header .location { font-size: 9px; color: #333; margin: 1mm 0 0 0; font-weight: 600; }
+            .info { margin-bottom: 3mm; padding: 2mm 3mm; background: ${theme.secondary}20; border-left: 3px solid ${theme.primary}; border-radius: 2px; flex-shrink: 0; }
+            .info p { margin: 0; font-size: 8.5px; color: #333; }
+            .content { flex: 1; column-width: 35mm; column-gap: 2.5mm; column-fill: auto; overflow: hidden; max-height: 280mm; }
+            .ext-item { break-inside: avoid; margin-bottom: 2.5mm; padding: 2mm; border: 1px solid ${theme.secondary}; border-radius: 2px; }
+            .ext-item:last-child { border: 1px solid ${theme.secondary}; margin-bottom: 0; }
+            .ext-number { font-weight: 700; color: ${theme.primary}; font-size: 10px; margin-bottom: 0.5mm; }
+            .ext-user { font-weight: 600; font-size: 9px; margin-bottom: 0.3mm; }
+            .ext-designation { font-size: 8px; color: #555; margin-bottom: 0.3mm; font-style: italic; }
+            .ext-dept { font-size: 7.5px; color: #666; }
+            .footer { margin-top: 2mm; padding-top: 1.5mm; border-top: 1px dashed #999; text-align: center; font-size: 6px; color: #888; flex-shrink: 0; }
+            .footer p { margin: 0; line-height: 1.2; }
+          </style>
+        </head>
+        <body>
+          <div class="page">
+            <div class="header">
+              <img src="/logo/logo_1.png" alt="MNR Group Logo" />
+              <h1>MNR GROUP</h1>
+              <p>IP Phone Extension Directory</p>
+              ${(filterOffice && filterOffice !== '__all__') ? `<p class="location">Location: ${filterOffice}</p>` : ''}
+              ${(filterDepartment && filterDepartment !== '__all__') ? `<p class="location">Department: ${filterDepartment}</p>` : ''}
+            </div>
+            <div class="content">
+              ${itemsHtml}
+            </div>
+            <div class="footer">
+              <p>This is a confidential document. Unauthorized distribution is prohibited.</p>
+              <p>© ${new Date().getFullYear()} MNR Group - IT Department</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(content);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+      };
+      return;
+    }
+
+    // Multi-page grid layout (when no filters)
     const groupedByOffice: { [key: string]: typeof phonesToPrint } = {};
     
     phonesToPrint.forEach(phone => {
@@ -632,6 +737,15 @@ const IPPhoneList = () => {
               </Select>
             </div>
 
+            <Button 
+              variant="outline" 
+              onClick={clearFilters}
+              className="border-destructive/30 text-destructive hover:bg-destructive/10"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Clear Filters
+            </Button>
+
             <div className="flex flex-wrap gap-2">
             {/* Print Theme Selector */}
             <Select value={printTheme} onValueChange={setPrintTheme}>
@@ -647,6 +761,7 @@ const IPPhoneList = () => {
                 <SelectItem value="teal">🩵 Teal</SelectItem>
               </SelectContent>
             </Select>
+            
             <Button variant="outline" onClick={handlePrint} className="border-primary/30 text-primary hover:bg-primary/10 no-print">
               <Printer className="h-4 w-4 mr-2" />
               Print
@@ -718,8 +833,9 @@ const IPPhoneList = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {Object.entries(phonesByOffice).map(([officeName, officePhones]) => {
             const deptGroups = getDepartmentsByOffice(officeName);
-            const displayPhones = officePhones.slice(0, 3);
-            const hasMore = officePhones.length > 3;
+            const isFiltered = (filterOffice && filterOffice !== "__all__") || (filterDepartment && filterDepartment !== "__all__");
+            const displayPhones = isFiltered ? officePhones : officePhones.slice(0, 3);
+            const hasMore = !isFiltered && officePhones.length > 3;
 
             return (
               <Card
@@ -849,8 +965,10 @@ const IPPhoneList = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {Object.entries(deptGroups).map(([deptName, deptPhones]) => {
-            const displayPhones = deptPhones.slice(0, 3);
-            const hasMore = deptPhones.length > 3;
+            const isFiltered = (filterDepartment && filterDepartment !== "__all__") || (filterOffice && filterOffice !== "__all__");
+            const displayPhones = isFiltered ? deptPhones : deptPhones.slice(0, 3);
+            const hasMore = !isFiltered && deptPhones.length > 3;
+            const uniqueUsers = new Set(deptPhones.map(p => p.user_name)).size;
 
             return (
               <Card
@@ -859,7 +977,10 @@ const IPPhoneList = () => {
                 onClick={() => setSelectedDepartment(deptName)}
               >
                 <CardHeader>
-                  <Badge className="w-fit mb-2">{deptPhones.length} Extensions</Badge>
+                  <div className="flex gap-2 mb-2 flex-wrap">
+                    <Badge className="w-fit">{deptPhones.length} Extensions</Badge>
+                    <Badge className="w-fit bg-emerald-600">{uniqueUsers} Users</Badge>
+                  </div>
                   <CardTitle className="text-primary">{deptName}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
