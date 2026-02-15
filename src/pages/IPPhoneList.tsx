@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Plus, Edit, Trash2, Download, ArrowLeft, Building2, Users, ChevronRight, Upload, Printer, X } from "lucide-react";
+import { Phone, Plus, Edit, Trash2, Download, ArrowLeft, Building2, Users, ChevronRight, Upload, Printer, X, Filter } from "lucide-react";
 import dbService from "@/services/dbService";
 import SearchFilter from "@/components/SearchFilter";
 import IPPhonePrintCard from "@/components/IPPhonePrintCard";
@@ -36,8 +38,8 @@ const IPPhoneList = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [filterOffice, setFilterOffice] = useState<string>("__all__");
-  const [filterDepartment, setFilterDepartment] = useState<string>("__all__");
+  const [filterOffices, setFilterOffices] = useState<string[]>([]);
+  const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     extension_number: "",
@@ -118,8 +120,8 @@ const IPPhoneList = () => {
   };
 
   const clearFilters = () => {
-    setFilterOffice("__all__");
-    setFilterDepartment("__all__");
+    setFilterOffices([]);
+    setFilterDepartments([]);
     setFilterStatus("all");
     setSearchTerm("");
     toast({ title: "Filters cleared", description: "All filters have been reset." });
@@ -144,14 +146,14 @@ const IPPhoneList = () => {
     const officeGroups: { [key: string]: IPPhone[] } = {};
     let filtered = ipPhones;
 
-    // Apply office filter
-    if (filterOffice && filterOffice !== "__all__") {
-      filtered = filtered.filter(phone => phone.office_name === filterOffice);
+    // Apply office filter - if any offices selected, filter to only those
+    if (filterOffices.length > 0) {
+      filtered = filtered.filter(phone => filterOffices.includes(phone.office_name));
     }
 
-    // Apply department filter
-    if (filterDepartment && filterDepartment !== "__all__") {
-      filtered = filtered.filter(phone => phone.department_name === filterDepartment);
+    // Apply department filter - if any departments selected, filter to only those
+    if (filterDepartments.length > 0) {
+      filtered = filtered.filter(phone => filterDepartments.includes(phone.department_name));
     }
 
     // Apply search term
@@ -201,12 +203,12 @@ const IPPhoneList = () => {
     let filtered = ipPhones;
 
     // Apply Level 1 filters (dropdown)
-    if (filterOffice && filterOffice !== "__all__") {
-      filtered = filtered.filter((phone) => phone.office_name === filterOffice);
+    if (filterOffices.length > 0) {
+      filtered = filtered.filter((phone) => filterOffices.includes(phone.office_name));
     }
 
-    if (filterDepartment && filterDepartment !== "__all__") {
-      filtered = filtered.filter((phone) => phone.department_name === filterDepartment);
+    if (filterDepartments.length > 0) {
+      filtered = filtered.filter((phone) => filterDepartments.includes(phone.department_name));
     }
 
     // Apply Level 3 filters (navigation)
@@ -237,8 +239,8 @@ const IPPhoneList = () => {
 
   const handleExportData = () => {
     const filteredPhones = ipPhones.filter(phone => {
-      if (filterOffice && filterOffice !== "__all__" && phone.office_name !== filterOffice) return false;
-      if (filterDepartment && filterDepartment !== "__all__" && phone.department_name !== filterDepartment) return false;
+      if (filterOffices.length > 0 && !filterOffices.includes(phone.office_name)) return false;
+      if (filterDepartments.length > 0 && !filterDepartments.includes(phone.department_name)) return false;
       return true;
     });
 
@@ -283,8 +285,8 @@ const IPPhoneList = () => {
 
   const handlePrintAll = () => {
     const filteredPhones = ipPhones.filter(phone => {
-      if (filterOffice && filterOffice !== "__all__" && phone.office_name !== filterOffice) return false;
-      if (filterDepartment && filterDepartment !== "__all__" && phone.department_name !== filterDepartment) return false;
+      if (filterOffices.length > 0 && !filterOffices.includes(phone.office_name)) return false;
+      if (filterDepartments.length > 0 && !filterDepartments.includes(phone.department_name)) return false;
       return true;
     });
 
@@ -406,7 +408,7 @@ const IPPhoneList = () => {
     const phonesToPrint = getFilteredPhones();
 
     // Check if filters are active - use single-page column layout if filters active
-    const hasFilters = (filterOffice && filterOffice !== "__all__") || (filterDepartment && filterDepartment !== "__all__") || searchTerm || (filterStatus && filterStatus !== "all");
+    const hasFilters = (filterOffices.length > 0) || (filterDepartments.length > 0) || searchTerm || (filterStatus && filterStatus !== "all");
 
     // Single-page column layout for filtered data
     if (hasFilters) {
@@ -455,8 +457,8 @@ const IPPhoneList = () => {
               <img src="/logo/logo_1.png" alt="MNR Group Logo" />
               <h1>MNR GROUP</h1>
               <p>IP Phone Extension Directory</p>
-              ${(filterOffice && filterOffice !== '__all__') ? `<p class="location">Location: ${filterOffice}</p>` : ''}
-              ${(filterDepartment && filterDepartment !== '__all__') ? `<p class="location">Department: ${filterDepartment}</p>` : ''}
+              ${(filterOffices.length > 0) ? `<p class="location">Locations: ${filterOffices.join(', ')}</p>` : ''}
+              ${(filterDepartments.length > 0) ? `<p class="location">Departments: ${filterDepartments.join(', ')}</p>` : ''}
             </div>
             <div class="content">
               ${itemsHtml}
@@ -541,8 +543,8 @@ const IPPhoneList = () => {
               <img src="/logo/logo_1.png" alt="MNR Group Logo" style="height: 35px; width: auto;" />
               <h1 style="font-size: 16px; font-weight: bold; color: ${theme.primary}; margin: 0;">MNR Group</h1>
             </div>
-            ${filterOffice && filterOffice !== "__all__" ? `<h2 style="font-size: 12px; font-weight: 600; color: #333; margin: 0;">${filterOffice}</h2>` : ''}
-            <p style="font-size: 10px; color: #666; margin: ${filterOffice && filterOffice !== "__all__" ? '1mm 0 0 0' : '2mm 0 0 0'};">IP Phone Extension Directory</p>
+            ${filterOffices.length > 0 ? `<h2 style="font-size: 12px; font-weight: 600; color: #333; margin: 0;">${filterOffices.join(', ')}</h2>` : ''}
+            <p style="font-size: 10px; color: #666; margin: ${filterOffices.length > 0 ? '1mm 0 0 0' : '2mm 0 0 0'};">IP Phone Extension Directory</p>
           </div>
           <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.5mm; font-size: 7px;">
             ${officesHtml}
@@ -685,56 +687,144 @@ const IPPhoneList = () => {
           <div className="flex flex-col lg:flex-row lg:items-center gap-3">
             {/* Filter Dropdowns */}
             <div className="flex flex-wrap gap-2 items-center">
-              <Select value={filterOffice} onValueChange={setFilterOffice}>
-                <SelectTrigger className="w-40 border-primary/30">
-                  <SelectValue placeholder="Filter by Unit/Office" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All Offices</SelectItem>
-                  {Array.from(
-                    ipPhones.reduce((acc: Set<string>, phone) => {
-                      if (phone.office_name) acc.add(phone.office_name);
-                      return acc;
-                    }, new Set())
-                  ).map((office) => (
-                    <SelectItem key={office} value={office}>
-                      {office}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-                <SelectTrigger className="w-40 border-primary/30">
-                  <SelectValue placeholder="Filter by Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All Departments</SelectItem>
-                  {filterOffice && filterOffice !== "__all__"
-                    ? Array.from(
-                        ipPhones
-                          .filter(p => p.office_name === filterOffice)
-                          .reduce((acc: Set<string>, phone) => {
-                            if (phone.department_name) acc.add(phone.department_name);
-                            return acc;
-                          }, new Set())
-                      ).map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
-                        </SelectItem>
-                      ))
-                    : Array.from(
+              {/* Office Filter Popover */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10 gap-2">
+                    <Filter className="h-4 w-4" />
+                    Offices {filterOffices.length > 0 && `(${filterOffices.length})`}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-sm">Select Offices</h4>
+                      {filterOffices.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-2 text-xs"
+                          onClick={() => setFilterOffices([])}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                    <div className="space-y-2 max-h-56 overflow-y-auto">
+                      {Array.from(
                         ipPhones.reduce((acc: Set<string>, phone) => {
-                          if (phone.department_name) acc.add(phone.department_name);
+                          if (phone.office_name) acc.add(phone.office_name);
                           return acc;
                         }, new Set())
-                      ).map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
-                        </SelectItem>
+                      ).sort().map((office) => (
+                        <div key={office} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`office-${office}`}
+                            checked={filterOffices.includes(office)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFilterOffices([...filterOffices, office]);
+                              } else {
+                                setFilterOffices(filterOffices.filter(o => o !== office));
+                              }
+                            }}
+                          />
+                          <Label 
+                            htmlFor={`office-${office}`}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {office}
+                          </Label>
+                        </div>
                       ))}
-                </SelectContent>
-              </Select>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Department Filter Popover */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10 gap-2">
+                    <Filter className="h-4 w-4" />
+                    Departments {filterDepartments.length > 0 && `(${filterDepartments.length})`}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-sm">Select Departments</h4>
+                      {filterDepartments.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-2 text-xs"
+                          onClick={() => setFilterDepartments([])}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                    <div className="space-y-2 max-h-56 overflow-y-auto">
+                      {filterOffices.length > 0
+                        ? Array.from(
+                            ipPhones
+                              .filter(p => filterOffices.includes(p.office_name))
+                              .reduce((acc: Set<string>, phone) => {
+                                if (phone.department_name) acc.add(phone.department_name);
+                                return acc;
+                              }, new Set())
+                          ).sort().map((dept) => (
+                            <div key={dept} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`dept-${dept}`}
+                                checked={filterDepartments.includes(dept)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setFilterDepartments([...filterDepartments, dept]);
+                                  } else {
+                                    setFilterDepartments(filterDepartments.filter(d => d !== dept));
+                                  }
+                                }}
+                              />
+                              <Label 
+                                htmlFor={`dept-${dept}`}
+                                className="text-sm font-normal cursor-pointer"
+                              >
+                                {dept}
+                              </Label>
+                            </div>
+                          ))
+                        : Array.from(
+                            ipPhones.reduce((acc: Set<string>, phone) => {
+                              if (phone.department_name) acc.add(phone.department_name);
+                              return acc;
+                            }, new Set())
+                          ).sort().map((dept) => (
+                            <div key={dept} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`dept-${dept}`}
+                                checked={filterDepartments.includes(dept)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setFilterDepartments([...filterDepartments, dept]);
+                                  } else {
+                                    setFilterDepartments(filterDepartments.filter(d => d !== dept));
+                                  }
+                                }}
+                              />
+                              <Label 
+                                htmlFor={`dept-${dept}`}
+                                className="text-sm font-normal cursor-pointer"
+                              >
+                                {dept}
+                              </Label>
+                            </div>
+                          ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <Button 
@@ -833,7 +923,7 @@ const IPPhoneList = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {Object.entries(phonesByOffice).map(([officeName, officePhones]) => {
             const deptGroups = getDepartmentsByOffice(officeName);
-            const isFiltered = (filterOffice && filterOffice !== "__all__") || (filterDepartment && filterDepartment !== "__all__");
+            const isFiltered = (filterOffices.length > 0) || (filterDepartments.length > 0);
             const displayPhones = isFiltered ? officePhones : officePhones.slice(0, 3);
             const hasMore = !isFiltered && officePhones.length > 3;
 
@@ -965,7 +1055,7 @@ const IPPhoneList = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {Object.entries(deptGroups).map(([deptName, deptPhones]) => {
-            const isFiltered = (filterDepartment && filterDepartment !== "__all__") || (filterOffice && filterOffice !== "__all__");
+            const isFiltered = (filterDepartments.length > 0) || (filterOffices.length > 0);
             const displayPhones = isFiltered ? deptPhones : deptPhones.slice(0, 3);
             const hasMore = !isFiltered && deptPhones.length > 3;
             const uniqueUsers = new Set(deptPhones.map(p => p.user_name)).size;
