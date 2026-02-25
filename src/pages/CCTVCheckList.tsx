@@ -31,6 +31,7 @@ interface DailyChecklist {
   verified_by: string;
   approved_by: string;
   created_at: string;
+  last_printed_at?: string;
 }
 
 interface NVR {
@@ -67,6 +68,15 @@ interface CameraIssue {
   location: string;
 }
 
+interface FilteredPrintHistory {
+  id: number;
+  printed_at: string;
+  filter_date_from: string;
+  filter_date_to: string;
+  nvr_id?: number;
+  total_checklists_printed: number;
+}
+
 const CCTVCheckList = () => {
   const { toast } = useToast();
   const [nvrs, setNvrs] = useState<NVR[]>([]);
@@ -88,11 +98,15 @@ const CCTVCheckList = () => {
     date: "",
   });
 
+  // Print history dialog state
+  const [isPrintHistoryOpen, setIsPrintHistoryOpen] = useState(false);
+
   // Filter & Search states
   const [searchNvr, setSearchNvr] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterNvrNumber, setFilterNvrNumber] = useState("all");
+  const [printHistory, setPrintHistory] = useState<FilteredPrintHistory[]>([]);
 
   // Row merge states
   const [mergedCells, setMergedCells] = useState<MergedCell[]>([]);
@@ -158,6 +172,7 @@ const CCTVCheckList = () => {
     loadData();
     loadExcelSettings();
     loadPrintHeaderSettings();
+    loadPrintHistory();
   }, []);
 
   // Load saved excel settings from localStorage
@@ -186,6 +201,22 @@ const CCTVCheckList = () => {
     } catch (e) {
       console.error('Failed to load print header settings:', e);
     }
+  };
+
+  const loadPrintHistory = () => {
+    const saved = localStorage.getItem('cctv_filtered_print_history');
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved);
+      setPrintHistory(parsed);
+    } catch (e) {
+      console.error('Failed to load print history:', e);
+    }
+  };
+
+  const savePrintHistory = (history: FilteredPrintHistory[]) => {
+    localStorage.setItem('cctv_filtered_print_history', JSON.stringify(history));
+    setPrintHistory(history);
   };
 
   // Save excel settings when they change
@@ -244,6 +275,51 @@ const CCTVCheckList = () => {
     const checklistsData = await dbService.getCCTVChecklists();
     setNvrs(nvrsData || []);
     setChecklists(checklistsData || []);
+    
+    // Auto-create daily checklists for today if they don't exist
+    if (nvrsData && nvrsData.length > 0) {
+      await autoCreateDailyChecklists(nvrsData, checklistsData || []);
+    }
+  };
+
+  const autoCreateDailyChecklists = async (nvrsData: NVR[], checklistsData: DailyChecklist[]) => {
+    const today = new Date().toISOString().split("T")[0];
+    
+    for (const nvr of nvrsData) {
+      // Check if checklist already exists for today
+      const existsForToday = checklistsData.some(c => c.nvr_id === nvr.id && c.date === today);
+      
+      if (!existsForToday && nvr.cameras && nvr.cameras.length > 0) {
+        // Auto-create today's checklist
+        const cameras = nvr.cameras.map(cam => ({
+          ...cam,
+          camera_position: "Nil",
+          camera_recordings: "Nil",
+          clear_vision: "Nil",
+          remarks: "",
+        }));
+        
+        const newChecklist = {
+          nvr_id: nvr.id,
+          date: today,
+          cameras: cameras,
+          checked_by: "Officer(IT)",
+          verified_by: "Asst. Manager(IT)",
+          approved_by: "Head Of HR,Admin",
+          last_printed_at: undefined,
+        };
+        
+        try {
+          await dbService.addCCTVChecklist(newChecklist);
+        } catch (error) {
+          console.log(`Auto-create checklist for NVR ${nvr.nvr_number} already exists or failed:`, error);
+        }
+      }
+    }
+    
+    // Reload data after auto-creation
+    const updatedChecklists = await dbService.getCCTVChecklists();
+    setChecklists(updatedChecklists || []);
   };
 
   // Calculate NVR stats from checklists
@@ -606,6 +682,24 @@ const CCTVCheckList = () => {
       printWindow.focus();
       printWindow.print();
     };
+
+    // Save filtered print history
+    const newHistory: FilteredPrintHistory = {
+      id: Date.now(),
+      printed_at: new Date().toISOString(),
+      filter_date_from: filterDateFrom || "any",
+      filter_date_to: filterDateTo || "any",
+      nvr_id: selectedNvr?.id,
+      total_checklists_printed: filtered.length,
+    };
+    
+    const updatedHistory = [newHistory, ...printHistory].slice(0, 50); // Keep last 50 prints
+    savePrintHistory(updatedHistory);
+    
+    toast({ 
+      title: "Print Sent", 
+      description: `${filtered.length} checklist(s) sent to print. Filter: ${formatDate(filterDateFrom || "Start")} - ${formatDate(filterDateTo || "End")}` 
+    });
   };
 
   const clearFilters = () => {
@@ -1173,6 +1267,18 @@ const CCTVCheckList = () => {
       printWindow.focus();
       printWindow.print();
     };
+
+    // Update last_printed_at timestamp
+    const now = new Date().toISOString();
+    dbService.updateCCTVChecklist(checklist.id, {
+      ...checklist,
+      last_printed_at: now,
+    }).then(() => {
+      // Reload data to refresh the UI
+      loadData();
+    }).catch((error) => {
+      console.error('Failed to update print date:', error);
+    });
   };
 
   const handlePrintAllNVRs = () => {
@@ -1446,6 +1552,40 @@ const CCTVCheckList = () => {
     });
   };
 
+  const getLastFilteredPrint = () => {
+    if (printHistory.length === 0) return null;
+    
+    // Find the most recent print with matching filters
+    const matches = printHistory.filter(h => {
+      const filterMatch = (h.filter_date_from === (filterDateFrom || "any") && 
+                           h.filter_date_to === (filterDateTo || "any"));
+      const nvrMatch = !selectedNvr || h.nvr_id === selectedNvr.id || h.nvr_id === undefined;
+      return filterMatch && nvrMatch;
+    });
+    
+    return matches.length > 0 ? matches[0] : null;
+  };
+
+  const getAllPrintHistory = () => {
+    return [...printHistory].sort((a, b) => 
+      new Date(b.printed_at).getTime() - new Date(a.printed_at).getTime()
+    );
+  };
+
+  const getTimeAgoText = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  };
+
   // NVR List View
   if (!selectedNvr) {
     const filteredNvrs = getFilteredNvrs();
@@ -1585,8 +1725,23 @@ const CCTVCheckList = () => {
               )}
             </div>
             {(filterDateFrom || filterDateTo || filterNvrNumber !== "all") && (
-              <div className="mt-3 text-sm text-muted-foreground">
-                Showing {filteredChecklistsAll.length} checklists matching filters
+              <div className="mt-3 space-y-2">
+                <div className="text-sm text-muted-foreground">
+                  Showing {filteredChecklistsAll.length} checklists matching filters
+                </div>
+                {getLastFilteredPrint() && (
+                  <div className="text-xs bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded p-2">
+                    <span className="font-semibold text-blue-900 dark:text-blue-100">Last Filtered Print: </span>
+                    <span className="text-blue-800 dark:text-blue-200">
+                      {formatDate(getLastFilteredPrint()!.printed_at)} at{" "}
+                      {new Date(getLastFilteredPrint()!.printed_at).toLocaleTimeString('en-GB', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                      {" "}({getTimeAgoText(getLastFilteredPrint()!.printed_at)})
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -1835,6 +1990,43 @@ const CCTVCheckList = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Last Print Date Card */}
+        <Card 
+          className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20 perspective-1000 hover-lift cursor-pointer transition-all hover:shadow-lg" 
+          onClick={() => setIsPrintHistoryOpen(true)}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Printer className="h-10 w-10 text-blue-500" />
+                <div>
+                  <p className="text-muted-foreground text-sm">Last Print Date</p>
+                  {getAllPrintHistory().length > 0 ? (
+                    <div>
+                      <p className="text-3xl font-bold text-blue-600">
+                        {formatDate(getAllPrintHistory()[0].printed_at)}
+                      </p>
+                      <p className="text-xs text-blue-500">
+                        {new Date(getAllPrintHistory()[0].printed_at).toLocaleTimeString('en-GB', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })} ({getTimeAgoText(getAllPrintHistory()[0].printed_at)})
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-lg text-muted-foreground">No prints yet</p>
+                  )}
+                  <p className="text-xs text-blue-500/70 mt-1">Click to view history</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-blue-500">{getAllPrintHistory().length}</p>
+                <p className="text-xs text-muted-foreground">Total Prints</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* NVR Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -2090,6 +2282,20 @@ const CCTVCheckList = () => {
             </div>
           </div>
 
+          {(filterDateFrom || filterDateTo) && getLastFilteredPrint() && (
+            <div className="text-xs bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded p-2">
+              <span className="font-semibold text-blue-900 dark:text-blue-100">Last Filtered Print: </span>
+              <span className="text-blue-800 dark:text-blue-200">
+                {formatDate(getLastFilteredPrint()!.printed_at)} at{" "}
+                {new Date(getLastFilteredPrint()!.printed_at).toLocaleTimeString('en-GB', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+                {" "}({getTimeAgoText(getLastFilteredPrint()!.printed_at)})
+              </span>
+            </div>
+          )}
+
           {nvrChecklists.length > 0 ? (
             <Table>
               <TableHeader>
@@ -2097,6 +2303,7 @@ const CCTVCheckList = () => {
                   <TableHead>Date</TableHead>
                   <TableHead>Total Cameras</TableHead>
                   <TableHead>Checked By</TableHead>
+                  <TableHead>Last Print Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -2112,6 +2319,21 @@ const CCTVCheckList = () => {
                       <Badge variant="secondary">{checklist.cameras?.length || 0}</Badge>
                     </TableCell>
                     <TableCell>{checklist.checked_by}</TableCell>
+                    <TableCell>
+                      {checklist.last_printed_at ? (
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{formatDate(checklist.last_printed_at)}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(checklist.last_printed_at).toLocaleTimeString('en-GB', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                      ) : (
+                        <Badge variant="outline">Not Printed</Badge>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button
@@ -2259,7 +2481,23 @@ const CCTVCheckList = () => {
                     {isViewChecklistOpen ? "View/Edit Checklist" : "New Daily Checklist"} - NVR-{selectedNvr.nvr_number}
                   </DialogTitle>
                   <DialogDescription>
-                    Date: {formatDate(checklistFormData.date)} | Drag column headers to resize
+                    Date: {formatDate(checklistFormData.date)} 
+                    {selectedChecklist?.last_printed_at && (
+                      <>
+                        {" | Last Printed: "}
+                        <span className="font-medium text-foreground">
+                          {formatDate(selectedChecklist.last_printed_at)}{" "}
+                          {new Date(selectedChecklist.last_printed_at).toLocaleTimeString('en-GB', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </>
+                    )}
+                    {!selectedChecklist?.last_printed_at && isViewChecklistOpen && (
+                      <span className="text-amber-600 font-medium">| Not Printed Yet</span>
+                    )}
+                    | Drag column headers to resize
                   </DialogDescription>
                 </div>
               </div>
@@ -2612,6 +2850,88 @@ const CCTVCheckList = () => {
               Delete Checklist
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Print History Dialog */}
+      <Dialog open={isPrintHistoryOpen} onOpenChange={setIsPrintHistoryOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Printer className="h-5 w-5 text-blue-500" />
+              Filtered Print History
+            </DialogTitle>
+            <DialogDescription>
+              Complete history of all filtered prints ({getAllPrintHistory().length} total)
+            </DialogDescription>
+          </DialogHeader>
+          
+          {getAllPrintHistory().length > 0 ? (
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Print Date & Time</TableHead>
+                    <TableHead>Filter Range</TableHead>
+                    <TableHead>NVR</TableHead>
+                    <TableHead>Checklists</TableHead>
+                    <TableHead>Time Ago</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {getAllPrintHistory().map((history) => {
+                    const nvr = nvrs.find(n => n.id === history.nvr_id);
+                    return (
+                      <TableRow key={history.id}>
+                        <TableCell className="font-medium">
+                          <div>
+                            <p>{formatDate(history.printed_at)}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(history.printed_at).toLocaleTimeString('en-GB', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <p className="font-medium">
+                              {history.filter_date_from === "any" ? "From Start" : formatDate(history.filter_date_from)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              to {history.filter_date_to === "any" ? "End" : formatDate(history.filter_date_to)}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {history.nvr_id ? (
+                            <Badge variant="outline">
+                              NVR-{nvr?.nvr_number || history.nvr_id}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">All NVRs</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="default">{history.total_checklists_printed}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {getTimeAgoText(history.printed_at)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Printer className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+              <p className="text-muted-foreground">No print history yet</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
