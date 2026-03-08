@@ -268,7 +268,7 @@ const IPAddresses = () => {
   const availableIPs = ipAddresses.filter(ip => ip.status === "available").length;
 
   // Main view - show all cards
-  if (!selectedSeries && !selectedDeviceType) {
+  if (!selectedSeries && !selectedDeviceType && filterOffice === "__all__" && filterDepartment === "__all__") {
     return (
       <div className="w-full px-4 md:px-6 lg:px-8 py-6 space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -401,65 +401,88 @@ const IPAddresses = () => {
           </div>
         </div>
 
-        {/* Search Filter */}
-        <Card className="border-primary/20">
-          <CardContent className="p-4 space-y-4">
+        {/* Filter Row - Search, Filters, Status */}
+        <div className="flex flex-col lg:flex-row gap-2 items-end">
+          <div className="flex-1">
             <SearchFilter
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               searchPlaceholder="Search IP addresses, users, departments..."
-              filters={[
-                {
-                  value: filterStatus,
-                  onChange: setFilterStatus,
-                  placeholder: "Filter by status",
-                  options: [
-                    { value: "all", label: "All Status" },
-                    { value: "used", label: "Used" },
-                    { value: "available", label: "Available" },
-                  ],
-                },
-              ]}
+              filters={[]}
             />
-            
-            {/* Filter Dropdowns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="office-filter">Office/Unit</Label>
-                <Select value={filterOffice} onValueChange={setFilterOffice}>
-                  <SelectTrigger id="office-filter">
-                    <SelectValue placeholder="Select office/unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All Offices/Units</SelectItem>
-                    {[...new Set(ipAddresses.map(ip => ip.unit_office))].filter(Boolean).map(office => (
-                      <SelectItem key={office} value={office}>{office}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="dept-filter">Department</Label>
-                <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-                  <SelectTrigger id="dept-filter">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All Departments</SelectItem>
-                    {[...new Set(ipAddresses.map(ip => ip.user_department))].filter(Boolean).map(dept => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          
+          <div className="w-40">
+            <Label htmlFor="series-filter" className="text-xs">IP Series</Label>
+            <Select value={selectedSeries || "__all__"} onValueChange={(val) => setSelectedSeries(val === "__all__" ? null : val)}>
+              <SelectTrigger id="series-filter">
+                <SelectValue placeholder="IP Series" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Series</SelectItem>
+                {allSeries.map(series => (
+                  <SelectItem key={series} value={series}>{series}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="w-40">
+            <Label htmlFor="office-filter" className="text-xs">Office/Unit</Label>
+            <Select value={filterOffice} onValueChange={setFilterOffice}>
+              <SelectTrigger id="office-filter">
+                <SelectValue placeholder="Office/Unit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Offices</SelectItem>
+                {[...new Set(ipAddresses.map(ip => ip.unit_office))].filter(Boolean).map(office => (
+                  <SelectItem key={office} value={office}>{office}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="w-40">
+            <Label htmlFor="dept-filter" className="text-xs">Department</Label>
+            <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+              <SelectTrigger id="dept-filter">
+                <SelectValue placeholder="Department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Departments</SelectItem>
+                {[...new Set(ipAddresses.map(ip => ip.user_department))].filter(Boolean).map(dept => (
+                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="w-40">
+            <Label htmlFor="status-filter" className="text-xs">Status</Label>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger id="status-filter">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="used">Used</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <Button 
+            variant="outline" 
+            onClick={() => { setSelectedSeries(null); setFilterOffice("__all__"); setFilterDepartment("__all__"); setFilterStatus("all"); setSearchTerm(""); }}
+            className="border-primary/30 text-primary hover:bg-primary/10 whitespace-nowrap h-10"
+          >
+            Clear
+          </Button>
+        </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Clickable */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="perspective-1000 hover-lift glow-effect animate-slide-up bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <Card className="cursor-pointer perspective-1000 hover-lift glow-effect animate-slide-up bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 transition-all hover:border-primary/50" onClick={() => { setFilterStatus("all"); setFilterOffice("__all__"); setFilterDepartment("__all__"); }}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground">Total IP</CardTitle>
             </CardHeader>
@@ -467,7 +490,7 @@ const IPAddresses = () => {
               <div className="text-3xl font-bold text-primary">{totalIPs}</div>
             </CardContent>
           </Card>
-          <Card className="perspective-1000 hover-lift glow-effect animate-slide-up bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+          <Card className="cursor-pointer perspective-1000 hover-lift glow-effect animate-slide-up bg-gradient-to-br from-success/10 to-success/5 border-success/20 transition-all hover:border-success/50" onClick={() => { setFilterStatus("used"); setFilterOffice("__all__"); setFilterDepartment("__all__"); }}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground">Used IP</CardTitle>
             </CardHeader>
@@ -475,7 +498,7 @@ const IPAddresses = () => {
               <div className="text-3xl font-bold text-success">{usedIPs}</div>
             </CardContent>
           </Card>
-          <Card className="perspective-1000 hover-lift glow-effect animate-slide-up bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
+          <Card className="cursor-pointer perspective-1000 hover-lift glow-effect animate-slide-up bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20 transition-all hover:border-warning/50" onClick={() => { setFilterStatus("available"); setFilterOffice("__all__"); setFilterDepartment("__all__"); }}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground">Available IP</CardTitle>
             </CardHeader>
@@ -590,7 +613,7 @@ const IPAddresses = () => {
         <div>
           <Button
             variant="outline"
-            onClick={() => { setSelectedSeries(null); setSelectedDeviceType(null); setSearchTerm(""); }}
+            onClick={() => { setSelectedSeries(null); setSelectedDeviceType(null); setSearchTerm(""); setFilterOffice("__all__"); setFilterDepartment("__all__"); setFilterStatus("all"); }}
             className="mb-4 border-primary/30 text-primary hover:bg-primary/10"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
