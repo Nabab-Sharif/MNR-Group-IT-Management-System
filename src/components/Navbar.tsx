@@ -32,7 +32,7 @@ const Navbar = () => {
     { path: "/wifi-list", label: "WiFi List", icon: Wifi },
     { path: "/cctv-checklist", label: "CCTV Check List", icon: ClipboardCheck },
     { path: "/switch-mapping", label: "Switch Mapping", icon: Cable },
-    { path: "/products", label: "Product Tracking", icon: Package },
+    { path: "https://mnrgroupitasset.netlify.app", label: "Product Tracking", icon: Package },
     { path: "/settings", label: "Settings", icon: Settings },
   ];
 
