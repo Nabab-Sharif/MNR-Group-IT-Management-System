@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'logo/**/*.png'],
       manifest: {
-        name: 'MNR IMS',
+        name: 'MNR IT MS',
         short_name: 'MNR IT',
         description: 'Professional IT Management System for MNR Group',
         theme_color: '#0ea5e9',
