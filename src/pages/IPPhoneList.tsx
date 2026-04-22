@@ -320,7 +320,7 @@ const IPPhoneList = () => {
         </tr>
       `).join('');
 
-      const officeHeader = filterOffice && filterOffice !== "__all__" ? filterOffice : null;
+      const officeHeader = filterOffices && filterOffices.length > 0 && !filterOffices.includes("__all__") ? filterOffices.join(", ") : null;
 
       return `
         <div style="width: 210mm; min-height: 297mm; padding: 4mm 3mm; box-sizing: border-box; page-break-after: ${pageIndex < pages.length - 1 ? 'always' : 'auto'}; font-family: 'Segoe UI', Arial, sans-serif;">
@@ -716,7 +716,7 @@ const IPPhoneList = () => {
                           if (phone.office_name) acc.add(phone.office_name);
                           return acc;
                         }, new Set())
-                      ).sort().map((office) => (
+                      ).sort().map((office: string) => (
                         <div key={office} className="flex items-center space-x-2">
                           <Checkbox
                             id={`office-${office}`}
@@ -767,14 +767,14 @@ const IPPhoneList = () => {
                     </div>
                     <div className="space-y-2 max-h-56 overflow-y-auto">
                       {filterOffices.length > 0
-                        ? Array.from(
+                        ? (Array.from(
                             ipPhones
                               .filter(p => filterOffices.includes(p.office_name))
                               .reduce((acc: Set<string>, phone) => {
                                 if (phone.department_name) acc.add(phone.department_name);
                                 return acc;
                               }, new Set())
-                          ).sort().map((dept) => (
+                          ) as string[]).sort().map((dept) => (
                             <div key={dept} className="flex items-center space-x-2">
                               <Checkbox
                                 id={`dept-${dept}`}
@@ -795,12 +795,12 @@ const IPPhoneList = () => {
                               </Label>
                             </div>
                           ))
-                        : Array.from(
+                        : (Array.from(
                             ipPhones.reduce((acc: Set<string>, phone) => {
                               if (phone.department_name) acc.add(phone.department_name);
                               return acc;
                             }, new Set())
-                          ).sort().map((dept) => (
+                          ) as string[]).sort().map((dept) => (
                             <div key={dept} className="flex items-center space-x-2">
                               <Checkbox
                                 id={`dept-${dept}`}

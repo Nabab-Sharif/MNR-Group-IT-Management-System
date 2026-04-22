@@ -148,13 +148,22 @@ const WifiList = () => {
               <title>WiFi - ${wifi.wifi_name}</title>
               <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { 
-                  font-family: 'Segoe UI', system-ui, sans-serif;
+                html, body { 
+                  font-family: 'Segoe UI', system-us, sans-serif;
                   display: flex;
                   justify-content: center;
                   align-items: center;
                   min-height: 100vh;
                   background: #f0f9ff;
+                  margin: 0;
+                  padding: 0;
+                  width: 100%;
+                  height: 100%;
+                }
+                @page {
+                  margin: 0;
+                  size: A4;
+                  padding: 0;
                 }
                 .wifi-card {
                   width: 400px;
@@ -190,7 +199,17 @@ const WifiList = () => {
                 .footer { margin-top: 25px; padding-top: 20px; border-top: 2px solid #e2e8f0; }
                 .footer p { font-size: 12px; color: #64748b; }
                 @media print {
-                  body { background: white; }
+                  * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                  }
+                  html, body {
+                    background: white !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                  }
                   .wifi-card { box-shadow: none; border: 3px solid #0ea5e9; }
                 }
               </style>
@@ -276,21 +295,26 @@ const WifiList = () => {
             width: 100%;
             height: 100%;
           }
-          @page { 
-            margin: 0;
+          @page {
+            margin: 0 !important;
+            padding: 0 !important;
             size: A4;
           }
           @media print {
             html, body { 
-              background: white; 
-              margin: 0; 
-              padding: 0;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
+              background: white !important; 
+              margin: 0 !important; 
+              padding: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
             * {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
+              margin: 0 !important;
+              padding: 0 !important;
             }
           }
         </style>
@@ -305,7 +329,7 @@ const WifiList = () => {
       printWindow.print();
     };
 
-    toast({ title: "Print Ready", description: `${wifiNetworks.length} WiFi network(s) ready to print.` });
+    toast({ title: "Print Ready", description: `${filteredWifi.length} WiFi network(s) ready to print.` });
   };
 
   const handlePrintFilteredWifi = () => {
@@ -362,21 +386,26 @@ const WifiList = () => {
             width: 100%;
             height: 100%;
           }
-          @page { 
-            margin: 0;
+          @page {
+            margin: 0 !important;
+            padding: 0 !important;
             size: A4;
           }
           @media print {
             html, body { 
-              background: white; 
-              margin: 0; 
-              padding: 0;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
+              background: white !important; 
+              margin: 0 !important; 
+              padding: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
             * {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
+              margin: 0 !important;
+              padding: 0 !important;
             }
           }
         </style>
@@ -596,8 +625,8 @@ const WifiList = () => {
                             return acc;
                           }, new Set())
                       ).map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
+                        <SelectItem key={dept as string} value={dept as string}>
+                          {dept as string}
                         </SelectItem>
                       ))
                     : Array.from(
@@ -606,8 +635,8 @@ const WifiList = () => {
                           return acc;
                         }, new Set())
                       ).map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
+                        <SelectItem key={dept as string} value={dept as string}>
+                          {dept as string}
                         </SelectItem>
                       ))}
                 </SelectContent>
@@ -618,13 +647,7 @@ const WifiList = () => {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button 
-              onClick={handlePrintAllWifi}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              Print All
-            </Button>
+           
             <Button variant="outline" onClick={() => document.getElementById('wifi-import-file')?.click()} className="border-primary/30 text-primary hover:bg-primary/10">
               <Upload className="h-4 w-4 mr-2" />
               Import
@@ -717,13 +740,7 @@ const WifiList = () => {
             <p className="text-muted-foreground mt-2">Select a department to view WiFi details</p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              onClick={handlePrintAllWifi}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              Print All
-            </Button>
+           
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button 
@@ -817,13 +834,7 @@ const WifiList = () => {
           <p className="text-muted-foreground mt-2">{filteredWifi.length} WiFi networks</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={handlePrintFilteredWifi}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-          >
-            <Printer className="h-4 w-4 mr-2" />
-            Print All
-          </Button>
+         
         </div>
       </div>
 
@@ -849,14 +860,7 @@ const WifiList = () => {
           </DialogContent>
         </Dialog>
 
-        <Button 
-          onClick={handlePrintAllWifi}
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-        >
-          <Printer className="h-4 w-4 mr-2" />
-          Print All
-        </Button>
-
+        
       {/* Search Filter */}
       <Card className="border-primary/20">
         <CardContent className="p-4">

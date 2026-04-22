@@ -19,6 +19,8 @@ import WifiList from "./pages/WifiList";
 import IPAddresses from "./pages/IPAddresses";
 import CCTVList from "./pages/CCTVList";
 import CCTVCheckList from "./pages/CCTVCheckList";
+import PrintHistory from "./pages/PrintHistory";
+import DailyChecklistsView from "./pages/DailyChecklistsView";
 import SwitchPortMapping from "./pages/SwitchPortMapping";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -44,6 +46,9 @@ const App = () => (
               <Route path="/wifi-list" element={<WifiList />} />
               <Route path="/cctv-list" element={<CCTVList />} />
               <Route path="/cctv-checklist" element={<CCTVCheckList />} />
+              <Route path="/cctv-checklist/print-history" element={<PrintHistory />} />
+              <Route path="/daily-checklists/:nvrId" element={<DailyChecklistsView />} />
+              <Route path="/daily-checklists" element={<DailyChecklistsView />} />
               <Route path="/switch-mapping" element={<SwitchPortMapping />} />
               <Route path="/products" element={<Products />} />
               <Route path="/peripherals" element={<Peripherals />} />

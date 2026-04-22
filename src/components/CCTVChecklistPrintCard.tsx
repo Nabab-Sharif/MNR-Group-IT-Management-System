@@ -49,13 +49,8 @@ const CCTVChecklistPrintCard: React.FC<CCTVChecklistPrintCardProps> = ({
         pageBreakAfter: "always",
       }}
     >
-      {/* Header with Logo */}
+      {/* Header */}
       <div style={{ textAlign: "center" as const, marginBottom: "8px" }}>
-        <img 
-          src="/logo/logo_1.png" 
-          alt="MNR Logo" 
-          style={{ height: "40px", marginBottom: "4px" }}
-        />
         <div style={{ fontSize: "16px", fontWeight: "bold", color: "#1a365d" }}>
           MNR Sweaters Ltd.
         </div>

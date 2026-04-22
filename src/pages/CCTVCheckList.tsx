@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Plus, Edit, Trash2, ArrowLeft, Printer, Calendar, Eye, Server, ClipboardCheck, Settings2, Type, Columns, WrapText, Merge, FileSpreadsheet, Search, Filter, X, SplitSquareHorizontal, AlertTriangle, CheckCircle, Download, Upload } from "lucide-react";
+import { ToastAction } from "@/components/ui/toast";
+import { Camera, Plus, Edit, Trash2, ArrowLeft, Printer, Calendar, Eye, Server, ClipboardCheck, Settings2, Type, Columns, WrapText, Merge, FileSpreadsheet, Search, Filter, X, SplitSquareHorizontal, AlertTriangle, CheckCircle, Download, Upload, BookOpen } from "lucide-react";
 import dbService from "@/services/dbService";
 import CCTVChecklistPrintCard from "@/components/CCTVChecklistPrintCard";
 
@@ -79,6 +81,7 @@ interface FilteredPrintHistory {
 
 const CCTVCheckList = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [nvrs, setNvrs] = useState<NVR[]>([]);
   const [checklists, setChecklists] = useState<DailyChecklist[]>([]);
   const [selectedNvr, setSelectedNvr] = useState<NVR | null>(null);
@@ -98,15 +101,14 @@ const CCTVCheckList = () => {
     date: "",
   });
 
-  // Print history dialog state
-  const [isPrintHistoryOpen, setIsPrintHistoryOpen] = useState(false);
-
   // Filter & Search states
   const [searchNvr, setSearchNvr] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterNvrNumber, setFilterNvrNumber] = useState("all");
   const [printHistory, setPrintHistory] = useState<FilteredPrintHistory[]>([]);
+  const [checklistPage, setChecklistPage] = useState(1);
+  const [filterLastPrintDate, setFilterLastPrintDate] = useState("all");
 
   // Row merge states
   const [mergedCells, setMergedCells] = useState<MergedCell[]>([]);
@@ -174,6 +176,11 @@ const CCTVCheckList = () => {
     loadPrintHeaderSettings();
     loadPrintHistory();
   }, []);
+
+  // Reset checklist page when filters change
+  useEffect(() => {
+    setChecklistPage(1);
+  }, [filterDateFrom, filterDateTo, filterLastPrintDate]);
 
   // Load saved excel settings from localStorage
   const loadExcelSettings = () => {
@@ -244,8 +251,72 @@ const CCTVCheckList = () => {
     savePrintHeaderSettings();
   }, [printHeader]);
 
+  // Auto-save checklist when editing (with debounce)
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    // Only auto-save if dialog is open and there's a checklist to save
+    if (!isChecklistDialogOpen && !isViewChecklistOpen) {
+      return;
+    }
+    
+    // Clear any pending timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    
+    // Set new timeout for auto-save (500ms after last change)
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      if (!selectedNvr) return;
+      
+      const checklistToSave = {
+        nvr_id: selectedNvr.id,
+        date: checklistFormData.date,
+        cameras: checklistCameras,
+        checked_by: checklistFormData.checked_by,
+        verified_by: checklistFormData.verified_by,
+        approved_by: checklistFormData.approved_by,
+        mergedCells: mergedCells,
+      };
+      
+      try {
+        // If we have a selectedChecklist (from view/edit or newly created), update it
+        if (selectedChecklist) {
+          await dbService.updateCCTVChecklist(selectedChecklist.id, checklistToSave);
+        } else {
+          // For new checklists being created, check if one already exists
+          const existingChecklist = checklists.find(
+            c => c.nvr_id === selectedNvr.id && c.date === checklistFormData.date
+          );
+          
+          if (existingChecklist) {
+            await dbService.updateCCTVChecklist(existingChecklist.id, checklistToSave);
+          } else {
+            // Create new only if it doesn't exist
+            await dbService.addCCTVChecklist(checklistToSave);
+          }
+        }
+        
+        // Refresh data to show updated active cameras count
+        await loadData();
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      }
+    }, 500);
+    
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [checklistCameras, checklistFormData, isChecklistDialogOpen, isViewChecklistOpen, selectedNvr, selectedChecklist, mergedCells]);
+
   // Auto-apply logic: if location name has content, set dropdowns to OK
   useEffect(() => {
+    if (!isChecklistDialogOpen && !isViewChecklistOpen) {
+      return;
+    }
+    
     const updatedCameras = checklistCameras.map(cam => {
       if (cam.location_name && cam.location_name.trim() !== "") {
         return {
@@ -268,7 +339,7 @@ const CCTVCheckList = () => {
     if (hasChanges) {
       setChecklistCameras(updatedCameras);
     }
-  }, [isChecklistDialogOpen || isViewChecklistOpen]);
+  }, [isChecklistDialogOpen, isViewChecklistOpen, checklistCameras]);
 
   const loadData = async () => {
     const nvrsData = await dbService.getNVRs();
@@ -278,12 +349,18 @@ const CCTVCheckList = () => {
     
     // Auto-create daily checklists for today if they don't exist
     if (nvrsData && nvrsData.length > 0) {
-      await autoCreateDailyChecklists(nvrsData, checklistsData || []);
+      const created = await autoCreateDailyChecklists(nvrsData, checklistsData || []);
+      if (created > 0) {
+        // Reload data after auto-creation to ensure it's saved
+        const updatedChecklists = await dbService.getCCTVChecklists();
+        setChecklists(updatedChecklists || []);
+      }
     }
   };
 
   const autoCreateDailyChecklists = async (nvrsData: NVR[], checklistsData: DailyChecklist[]) => {
     const today = new Date().toISOString().split("T")[0];
+    let createdCount = 0;
     
     for (const nvr of nvrsData) {
       // Check if checklist already exists for today
@@ -293,9 +370,9 @@ const CCTVCheckList = () => {
         // Auto-create today's checklist
         const cameras = nvr.cameras.map(cam => ({
           ...cam,
-          camera_position: "Nil",
-          camera_recordings: "Nil",
-          clear_vision: "Nil",
+          camera_position: "OK",
+          camera_recordings: "OK",
+          clear_vision: "OK",
           remarks: "",
         }));
         
@@ -310,16 +387,20 @@ const CCTVCheckList = () => {
         };
         
         try {
-          await dbService.addCCTVChecklist(newChecklist);
+          const result = await dbService.addCCTVChecklist(newChecklist);
+          if (result) {
+            createdCount++;
+            console.log(`Auto-created checklist for NVR ${nvr.nvr_number} (ID: ${result.id})`);
+          } else {
+            console.warn(`Failed to create checklist for NVR ${nvr.nvr_number}: null result`);
+          }
         } catch (error) {
-          console.log(`Auto-create checklist for NVR ${nvr.nvr_number} already exists or failed:`, error);
+          console.error(`Failed to auto-create checklist for NVR ${nvr.nvr_number}:`, error);
         }
       }
     }
     
-    // Reload data after auto-creation
-    const updatedChecklists = await dbService.getCCTVChecklists();
-    setChecklists(updatedChecklists || []);
+    return createdCount;
   };
 
   // Calculate NVR stats from checklists
@@ -402,6 +483,22 @@ const CCTVCheckList = () => {
   };
 
   const nvrStats = getNVRStats();
+
+  // Get active cameras for specific NVR
+  const getNVRActiveCameras = (nvrId: number) => {
+    const nvrChecklists = checklists.filter(c => c.nvr_id === nvrId);
+    if (nvrChecklists.length === 0) return 0;
+    
+    const latestChecklist = nvrChecklists.sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    )[0];
+    
+    return latestChecklist.cameras.filter(cam =>
+      cam.camera_position === "OK" &&
+      cam.camera_recordings === "OK" &&
+      cam.clear_vision === "OK"
+    ).length;
+  };
 
   const handleMouseDown = (e: React.MouseEvent, column: keyof ColumnSettings) => {
     resizingColumn.current = column;
@@ -505,7 +602,7 @@ const CCTVCheckList = () => {
       return;
     }
 
-    setMergedCells(prev => [...prev, { startRow, endRow, column }]);
+    setMergedCells(prev => [...prev, { startRow, endRow, column: column as keyof ColumnSettings | 'sl' }]);
     setSelectedCellsForMerge([]);
     setIsMergeMode(false);
     toast({ title: "Success", description: `Merged ${endRow - startRow + 1} cells` });
@@ -612,7 +709,6 @@ const CCTVCheckList = () => {
       return `
         <div class="page">
           <div class="header">
-            <img src="/logo/logo_1.png" alt="MNR Logo" />
             <h1>${printHeader.companyName}</h1>
             <h2>${printHeader.reportTitle}</h2>
             <div style="font-size: ${printHeader.nvrFontSize}px; font-weight: bold; margin-top: 2px;">NVR-${nvr?.nvr_number || checklist.nvr_id}</div>
@@ -657,7 +753,6 @@ const CCTVCheckList = () => {
             .page { padding: 0.5mm 1mm; page-break-after: always; width: 210mm; min-height: 296.5mm; max-height: 297mm; overflow: hidden; }
             .page:last-child { page-break-after: auto; }
             .header { text-align: center; margin-bottom: 0.5mm; }
-            .header img { height: 30px; }
             .header h1 { font-size: ${printHeader.companyFontSize}px; color: #1a365d; margin: 0px 0; }
             .header h2 { font-size: ${printHeader.reportFontSize}px; margin: 0px 0; }
             .info-row { display: flex; justify-content: space-between; font-weight: bold; margin: 0.5mm 0; font-size: 9px; }
@@ -793,24 +888,73 @@ const CCTVCheckList = () => {
   const handleCreateChecklist = async () => {
     if (!selectedNvr) return;
 
+    // Check if checklist already exists for today
+    const today = new Date().toISOString().split("T")[0];
+    const existingTodayChecklist = checklists.find(
+      c => c.nvr_id === selectedNvr.id && c.date === today
+    );
+
+    if (existingTodayChecklist) {
+      // Auto-open the existing checklist for editing
+      handleViewChecklist(existingTodayChecklist);
+      toast({
+        title: "Checklist Already Exists",
+        description: `Today's checklist for NVR-${selectedNvr.nvr_number} is already created. Opening it for editing.`,
+      });
+      return;
+    }
+
+    // Auto-create empty form for new checklist (but don't save yet)
     const cameras = selectedNvr.cameras.map(cam => ({
       ...cam,
-      camera_position: "Nil",
-      camera_recordings: "Nil",
-      clear_vision: "Nil",
+      camera_position: "OK",
+      camera_recordings: "OK",
+      clear_vision: "OK",
       remarks: "",
     }));
+    
     setChecklistCameras(cameras);
     setChecklistFormData({
-      date: new Date().toISOString().split("T")[0],
+      date: today,
       checked_by: "Officer(IT)",
       verified_by: "Asst. Manager(IT)",
       approved_by: "Head Of HR,Admin",
     });
-    setMergedCells([]); // Clear merges for new checklist
+    setMergedCells([]);
     setSelectedCellsForMerge([]);
     setIsMergeMode(false);
+    
+    // Auto-save the new checklist to storage
+    const newChecklist = {
+      nvr_id: selectedNvr.id,
+      date: today,
+      cameras: cameras,
+      checked_by: "Officer(IT)",
+      verified_by: "Asst. Manager(IT)",
+      approved_by: "Head Of HR,Admin",
+      mergedCells: [],
+    };
+    
+    try {
+      const result = await dbService.addCCTVChecklist(newChecklist);
+      if (result) {
+        // Set the selectedChecklist to the newly created one for edit tracking
+        setSelectedChecklist(result);
+        setIsViewChecklistOpen(true); // Mark as edit mode
+      }
+      await loadData(); // Refresh to show updated active cameras
+    } catch (error) {
+      console.error('Failed to auto-save checklist:', error);
+      toast({ title: "Error", description: "Failed to create checklist", variant: "destructive" });
+      return;
+    }
+    
     setIsChecklistDialogOpen(true);
+    
+    toast({ 
+      title: "New Checklist Created & Saved", 
+      description: `Today's checklist for NVR-${selectedNvr.nvr_number} has been created and auto-saved. Edit fields to make changes.` 
+    });
   };
 
   const handleSaveChecklist = async () => {
@@ -821,11 +965,12 @@ const CCTVCheckList = () => {
       c => c.nvr_id === selectedNvr.id && c.date === checklistFormData.date
     );
 
-    if (existingChecklist) {
+    if (existingChecklist && !isViewChecklistOpen) {
       toast({
-        title: "Duplicate Entry",
-        description: `A checklist for ${selectedNvr.name} on ${checklistFormData.date} already exists. Please edit the existing one instead.`,
-        variant: "destructive"
+        title: "Checklist Already Exists",
+        description: `A checklist for ${selectedNvr.name} on ${formatDate(checklistFormData.date)} already exists. Click "Edit Existing" to open it or change the date.`,
+        variant: "destructive",
+        action: <ToastAction altText="Edit Existing" onClick={() => handleViewChecklist(existingChecklist)}>Edit Existing</ToastAction>
       });
       return;
     }
@@ -840,10 +985,33 @@ const CCTVCheckList = () => {
       mergedCells: mergedCells,
     };
 
-    await dbService.addCCTVChecklist(newChecklist);
-    toast({ title: "Checklist Saved", description: "Daily checklist has been saved successfully." });
-    await loadData();
-    setIsChecklistDialogOpen(false);
+    try {
+      const result = isViewChecklistOpen && selectedChecklist
+        ? await dbService.updateCCTVChecklist(selectedChecklist.id, newChecklist)
+        : await dbService.addCCTVChecklist(newChecklist);
+      
+      if (!result) {
+        throw new Error('Database returned null');
+      }
+      
+      const messageTitle = isViewChecklistOpen ? "Checklist Updated" : "Checklist Saved";
+      const messageDesc = isViewChecklistOpen 
+        ? "Daily checklist has been updated successfully." 
+        : "Daily checklist has been saved successfully.";
+      
+      toast({ title: messageTitle, description: messageDesc });
+      await loadData();
+      setIsChecklistDialogOpen(false);
+      setIsViewChecklistOpen(false);
+      setSelectedChecklist(null);
+    } catch (error) {
+      console.error('Error saving checklist:', error);
+      toast({
+        title: "Save Failed",
+        description: `Failed to save checklist: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
   };
 
   const handleViewChecklist = (checklist: DailyChecklist) => {
@@ -866,25 +1034,46 @@ const CCTVCheckList = () => {
   const handleUpdateChecklist = async () => {
     if (!selectedChecklist) return;
 
-    await dbService.updateCCTVChecklist(selectedChecklist.id, {
-      date: checklistFormData.date,
-      cameras: checklistCameras,
-      checked_by: checklistFormData.checked_by,
-      verified_by: checklistFormData.verified_by,
-      approved_by: checklistFormData.approved_by,
-      mergedCells: mergedCells,
-    });
-    toast({ title: "Checklist Updated", description: "Checklist has been updated successfully." });
-    await loadData();
-    setIsViewChecklistOpen(false);
-    setSelectedChecklist(null);
+    try {
+      const result = await dbService.updateCCTVChecklist(selectedChecklist.id, {
+        date: checklistFormData.date,
+        cameras: checklistCameras,
+        checked_by: checklistFormData.checked_by,
+        verified_by: checklistFormData.verified_by,
+        approved_by: checklistFormData.approved_by,
+        mergedCells: mergedCells,
+      });
+      if (!result) {
+        throw new Error('Database returned null');
+      }
+      toast({ title: "Checklist Updated", description: "Checklist has been updated successfully." });
+      await loadData();
+      setIsViewChecklistOpen(false);
+      setSelectedChecklist(null);
+    } catch (error) {
+      console.error('Error updating checklist:', error);
+      toast({
+        title: "Update Failed",
+        description: `Failed to update checklist: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDeleteChecklist = async (id: number) => {
     if (window.confirm("Are you sure you want to delete this checklist?")) {
-      await dbService.deleteCCTVChecklist(id);
-      await loadData();
-      toast({ title: "Checklist Deleted", description: "Checklist has been deleted." });
+      try {
+        await dbService.deleteCCTVChecklist(id);
+        await loadData();
+        toast({ title: "Checklist Deleted", description: "Checklist has been deleted." });
+      } catch (error) {
+        console.error('Error deleting checklist:', error);
+        toast({
+          title: "Delete Failed",
+          description: `Failed to delete checklist: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -1601,10 +1790,7 @@ const CCTVCheckList = () => {
             <p className="text-muted-foreground mt-2">Manage NVRs and daily camera checklists</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={handlePrintAllNVRs} className="border-primary/30">
-              <Printer className="h-4 w-4 mr-2" />
-              Print All NVRs
-            </Button>
+           
             <Button variant="outline" onClick={handlePrintFilteredChecklists} className="border-primary/30">
               <Filter className="h-4 w-4 mr-2" />
               Print Filtered ({filteredChecklistsAll.length})
@@ -1729,6 +1915,11 @@ const CCTVCheckList = () => {
                 <div className="text-sm text-muted-foreground">
                   Showing {filteredChecklistsAll.length} checklists matching filters
                 </div>
+                {filterNvrNumber !== "all" && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/30 rounded text-primary text-sm font-semibold">
+                    <span>🔍 NVR-{filterNvrNumber}</span>
+                  </div>
+                )}
                 {getLastFilteredPrint() && (
                   <div className="text-xs bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded p-2">
                     <span className="font-semibold text-blue-900 dark:text-blue-100">Last Filtered Print: </span>
@@ -1748,7 +1939,7 @@ const CCTVCheckList = () => {
         </Card>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Dialog>
             <DialogTrigger asChild>
               <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 perspective-1000 hover-lift cursor-pointer">
@@ -1939,6 +2130,45 @@ const CCTVCheckList = () => {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Last Print Date Card */}
+          <Card 
+            className="bg-gradient-to-br from-blue-600/30 to-blue-700/20 border-blue-500/40 hover:border-blue-500/70 perspective-1000 hover-lift cursor-pointer transition-all hover:shadow-lg hover:shadow-blue-500/20 relative overflow-hidden group" 
+            onClick={() => navigate('/cctv-checklist/print-history')}
+          >
+            {/* Hover background glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-400/10 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <CardContent className="p-6 relative z-10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Printer className="h-10 w-10 text-blue-700" />
+                  <div>
+                    <p className="text-slate-200 text-sm font-medium">Last Print Date</p>
+                    {getAllPrintHistory().length > 0 ? (
+                      <div>
+                        <p className="text-3xl font-bold text-blue-300">
+                          {formatDate(getAllPrintHistory()[0].printed_at)}
+                        </p>
+                        <p className="text-xs text-blue-200/80">
+                          {new Date(getAllPrintHistory()[0].printed_at).toLocaleTimeString('en-GB', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })} ({getTimeAgoText(getAllPrintHistory()[0].printed_at)})
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-lg text-slate-300">No prints yet</p>
+                    )}
+                    <p className="text-xs text-blue-300/70 mt-1 cursor-pointer hover:text-blue-300">Click to view details</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-blue-300">{getAllPrintHistory().length}</p>
+                  <p className="text-xs text-slate-300">Total Prints</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Issues View Dialog */}
@@ -1991,43 +2221,6 @@ const CCTVCheckList = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Last Print Date Card */}
-        <Card 
-          className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20 perspective-1000 hover-lift cursor-pointer transition-all hover:shadow-lg" 
-          onClick={() => setIsPrintHistoryOpen(true)}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Printer className="h-10 w-10 text-blue-500" />
-                <div>
-                  <p className="text-muted-foreground text-sm">Last Print Date</p>
-                  {getAllPrintHistory().length > 0 ? (
-                    <div>
-                      <p className="text-3xl font-bold text-blue-600">
-                        {formatDate(getAllPrintHistory()[0].printed_at)}
-                      </p>
-                      <p className="text-xs text-blue-500">
-                        {new Date(getAllPrintHistory()[0].printed_at).toLocaleTimeString('en-GB', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })} ({getTimeAgoText(getAllPrintHistory()[0].printed_at)})
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-lg text-muted-foreground">No prints yet</p>
-                  )}
-                  <p className="text-xs text-blue-500/70 mt-1">Click to view history</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-blue-500">{getAllPrintHistory().length}</p>
-                <p className="text-xs text-muted-foreground">Total Prints</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* NVR Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredNvrs.map((nvr) => {
@@ -2035,28 +2228,47 @@ const CCTVCheckList = () => {
             return (
               <Card
                 key={nvr.id}
-                className="cursor-pointer perspective-1000 hover-lift glow-effect animate-slide-up bg-gradient-to-br from-card to-card/80 border-primary/20"
+                className="cursor-pointer perspective-1000 hover-lift glow-effect animate-slide-up bg-gradient-to-br from-slate-800/80 via-slate-700/60 to-slate-900/80 border-2 border-slate-600/40 hover:border-primary/70 transition-all duration-500 shadow-lg hover:shadow-2xl hover:shadow-primary/40 relative overflow-hidden group"
                 onClick={() => setSelectedNvr(nvr)}
               >
-                <CardHeader>
-                  <CardTitle className="text-primary flex items-center gap-2">
-                    <Server className="h-5 w-5" />
+                {/* Animated border gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/20 to-primary/0 opacity-0 group-hover:opacity-100 animate-pulse transition-opacity duration-500 pointer-events-none" />
+                {/* Top accent line on hover */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/0 via-primary/60 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <CardHeader className="relative z-10">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Server className="h-5 w-5 text-sky-400" />
                     NVR-{nvr.nvr_number}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-slate-300">
                     {nvr.name || `Network Video Recorder ${nvr.nvr_number}`}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 relative z-10">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Total Cameras:</span>
-                    <Badge variant="secondary">{nvr.cameras?.length || nvr.total_cameras}</Badge>
+                    <span className="text-sm font-medium text-slate-300">Total Cameras:</span>
+                    <Badge className="bg-blue-500/80 text-white border-blue-400/50">{nvr.cameras?.length || nvr.total_cameras}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Daily Reports:</span>
-                    <Badge variant="outline">{nvrChecklists.length}</Badge>
+                    <span className="text-sm font-medium text-slate-300">Active Cameras:</span>
+                    <Badge className="bg-green-500/80 text-white border-green-400/50">{getNVRActiveCameras(nvr.id)}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-300">Daily Reports:</span>
+                    <Badge className="bg-purple-500/80 text-white border-purple-400/50">{nvrChecklists.length}</Badge>
                   </div>
                   <div className="flex gap-2 mt-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/daily-checklists', { state: { nvrId: nvr.id } });
+                      }}
+                      title="View all daily checklists"
+                    >
+                      <BookOpen className="h-3 w-3" />
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -2210,60 +2422,94 @@ const CCTVCheckList = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filter and Export/Import Section */}
-          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 bg-muted/50 rounded-lg">
-            <div>
-              <Label htmlFor="checklist_date_from" className="text-xs mb-1 block">From Date</Label>
-              <Input
-                id="checklist_date_from"
-                type="date"
-                value={filterDateFrom}
-                onChange={(e) => setFilterDateFrom(e.target.value)}
-                className="h-9"
-              />
+          <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+            {/* Filter Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
+              <div className="min-w-0">
+                <Label htmlFor="checklist_date_from" className="text-xs mb-1 block">From Date</Label>
+                <Input
+                  id="checklist_date_from"
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="min-w-0">
+                <Label htmlFor="checklist_date_to" className="text-xs mb-1 block">To Date</Label>
+                <Input
+                  id="checklist_date_to"
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="min-w-0">
+                <Label htmlFor="checklist_last_print_date" className="text-xs mb-1 block">Last Print</Label>
+                <Select value={filterLastPrintDate} onValueChange={setFilterLastPrintDate}>
+                  <SelectTrigger id="checklist_last_print_date" className="h-9 text-sm">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="not-printed">Not Printed</SelectItem>
+                    {filterDateFrom && filterDateTo && (
+                      <SelectItem value={`${filterDateFrom}:${filterDateTo}`}>
+                        Between {filterDateFrom} & {filterDateTo}
+                      </SelectItem>
+                    )}
+                    {filterDateFrom && !filterDateTo && (
+                      <SelectItem value={`${filterDateFrom}:`}>
+                        From {filterDateFrom}
+                      </SelectItem>
+                    )}
+                    {!filterDateFrom && filterDateTo && (
+                      <SelectItem value={`:${filterDateTo}`}>
+                        Until {filterDateTo}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 flex-wrap justify-start">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setFilterDateFrom("");
+                    setFilterDateTo("");
+                    setFilterLastPrintDate("all");
+                  }}
+                  className="h-9 text-xs px-2"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="checklist_date_to" className="text-xs mb-1 block">To Date</Label>
-              <Input
-                id="checklist_date_to"
-                type="date"
-                value={filterDateTo}
-                onChange={(e) => setFilterDateTo(e.target.value)}
-                className="h-9"
-              />
-            </div>
-            <div className="flex gap-2 items-end">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setFilterDateFrom("");
-                  setFilterDateTo("");
-                }}
-              >
-                <X className="h-3 w-3 mr-1" />
-                Clear
-              </Button>
+
+            {/* Action Buttons Row */}
+            <div className="flex flex-wrap gap-2 items-center">
               <Button
                 size="sm"
                 variant="destructive"
                 onClick={() => handleDeleteFilteredChecklists()}
                 disabled={!filterDateFrom && !filterDateTo}
+                className="h-9 text-xs px-2"
               >
                 <Trash2 className="h-3 w-3 mr-1" />
                 Delete Filtered
               </Button>
-            </div>
-            <div className="flex gap-2 items-end">
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => handleExportChecklists()}
+                className="h-9 text-xs px-2"
               >
                 <Download className="h-3 w-3 mr-1" />
                 Export
               </Button>
-            </div>
-            <div className="flex gap-2 items-end">
               <input
                 type="file"
                 id="import-checklists"
@@ -2275,96 +2521,152 @@ const CCTVCheckList = () => {
                 size="sm"
                 variant="outline"
                 onClick={() => document.getElementById('import-checklists')?.click()}
+                className="h-9 text-xs px-2"
               >
                 <Upload className="h-3 w-3 mr-1" />
                 Import
               </Button>
             </div>
+
+            {/* Last Filtered Print Info */}
+            {(filterDateFrom || filterDateTo) && getLastFilteredPrint() && (
+              <div className="text-xs p-2.5 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="font-semibold text-blue-900 dark:text-blue-100">Last Print: </span>
+                    <span className="text-blue-800 dark:text-blue-200">
+                      {formatDate(getLastFilteredPrint()!.printed_at)} • {new Date(getLastFilteredPrint()!.printed_at).toLocaleTimeString('en-GB', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })} ({getTimeAgoText(getLastFilteredPrint()!.printed_at)})
+                    </span>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="link" 
+                    onClick={() => navigate('/cctv-checklist/print-history')}
+                    className="h-auto p-0 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs flex-shrink-0"
+                  >
+                    View history
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {(filterDateFrom || filterDateTo) && getLastFilteredPrint() && (
-            <div className="text-xs bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded p-2">
-              <span className="font-semibold text-blue-900 dark:text-blue-100">Last Filtered Print: </span>
-              <span className="text-blue-800 dark:text-blue-200">
-                {formatDate(getLastFilteredPrint()!.printed_at)} at{" "}
-                {new Date(getLastFilteredPrint()!.printed_at).toLocaleTimeString('en-GB', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-                {" "}({getTimeAgoText(getLastFilteredPrint()!.printed_at)})
-              </span>
-            </div>
-          )}
-
           {nvrChecklists.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Total Cameras</TableHead>
-                  <TableHead>Checked By</TableHead>
-                  <TableHead>Last Print Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {nvrChecklists.filter(c => {
+            <div className="space-y-4">
+              {(() => {
+                const CHECKLIST_ITEMS_PER_PAGE = 15;
+                const filteredChecklists = nvrChecklists.filter(c => {
                   if (filterDateFrom && c.date < filterDateFrom) return false;
                   if (filterDateTo && c.date > filterDateTo) return false;
+                  
+                  // Filter by last print date
+                  if (filterLastPrintDate !== "all") {
+                    if (filterLastPrintDate === "not-printed") {
+                      if (c.last_printed_at) return false;
+                    } else if (filterLastPrintDate.includes(":")) {
+                      const [fromDate, toDate] = filterLastPrintDate.split(":");
+                      if (fromDate && toDate) {
+                        // Between dates
+                        if (!c.last_printed_at || c.last_printed_at.split("T")[0] < fromDate || c.last_printed_at.split("T")[0] > toDate) {
+                          return false;
+                        }
+                      } else if (fromDate) {
+                        // From date onwards
+                        if (!c.last_printed_at || c.last_printed_at.split("T")[0] < fromDate) {
+                          return false;
+                        }
+                      } else if (toDate) {
+                        // Until date
+                        if (!c.last_printed_at || c.last_printed_at.split("T")[0] > toDate) {
+                          return false;
+                        }
+                      }
+                    }
+                  }
                   return true;
-                }).map((checklist) => (
-                  <TableRow key={checklist.id}>
-                    <TableCell className="font-medium">{formatDate(checklist.date)}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{checklist.cameras?.length || 0}</Badge>
-                    </TableCell>
-                    <TableCell>{checklist.checked_by}</TableCell>
-                    <TableCell>
-                      {checklist.last_printed_at ? (
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium">{formatDate(checklist.last_printed_at)}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(checklist.last_printed_at).toLocaleTimeString('en-GB', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                });
+                const totalPages = Math.ceil(filteredChecklists.length / CHECKLIST_ITEMS_PER_PAGE);
+                const startIndex = (checklistPage - 1) * CHECKLIST_ITEMS_PER_PAGE;
+                const endIndex = startIndex + CHECKLIST_ITEMS_PER_PAGE;
+                const paginatedChecklists = filteredChecklists.slice(startIndex, endIndex);
+
+                return (
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Total Cameras</TableHead>
+                          <TableHead>Checked By</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedChecklists.map((checklist) => (
+                          <TableRow key={checklist.id}>
+                            <TableCell className="font-medium">{formatDate(checklist.date)}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">{checklist.cameras?.length || 0}</Badge>
+                            </TableCell>
+                            <TableCell>{checklist.checked_by}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewChecklist(checklist)}
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  View
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDeleteChecklistWithConfirm(checklist.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    {/* Pagination Controls */}
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {startIndex + 1}-{Math.min(endIndex, filteredChecklists.length)} of {filteredChecklists.length} checklists
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setChecklistPage(prev => Math.max(1, prev - 1))}
+                          disabled={checklistPage === 1}
+                        >
+                          <span>← Previous</span>
+                        </Button>
+                        <div className="text-sm font-medium px-3 py-1 bg-muted rounded">
+                          Page {checklistPage} of {totalPages}
                         </div>
-                      ) : (
-                        <Badge variant="outline">Not Printed</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
                         <Button
-                          size="sm"
                           variant="outline"
-                          onClick={() => handleViewChecklist(checklist)}
-                        >
-                          <Eye className="h-3 w-3 mr-1" />
-                          View
-                        </Button>
-                        <Button
                           size="sm"
-                          variant="outline"
-                          onClick={() => handlePrintChecklist(checklist, selectedNvr)}
+                          onClick={() => setChecklistPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={checklistPage === totalPages}
                         >
-                          <Printer className="h-3 w-3 mr-1" />
-                          Print
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDeleteChecklistWithConfirm(checklist.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
+                          <span>Next →</span>
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
           ) : (
             <div className="text-center py-8">
               <ClipboardCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -2550,7 +2852,7 @@ const CCTVCheckList = () => {
                   type="date"
                   value={checklistFormData.date}
                   onChange={(e) => setChecklistFormData({ ...checklistFormData, date: e.target.value })}
-                  disabled={!isViewChecklistOpen && isChecklistDialogOpen === false}
+                  disabled={!isViewChecklistOpen && !isChecklistDialogOpen}
                 />
               </div>
             </div>
@@ -2850,88 +3152,6 @@ const CCTVCheckList = () => {
               Delete Checklist
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Print History Dialog */}
-      <Dialog open={isPrintHistoryOpen} onOpenChange={setIsPrintHistoryOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Printer className="h-5 w-5 text-blue-500" />
-              Filtered Print History
-            </DialogTitle>
-            <DialogDescription>
-              Complete history of all filtered prints ({getAllPrintHistory().length} total)
-            </DialogDescription>
-          </DialogHeader>
-          
-          {getAllPrintHistory().length > 0 ? (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Print Date & Time</TableHead>
-                    <TableHead>Filter Range</TableHead>
-                    <TableHead>NVR</TableHead>
-                    <TableHead>Checklists</TableHead>
-                    <TableHead>Time Ago</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {getAllPrintHistory().map((history) => {
-                    const nvr = nvrs.find(n => n.id === history.nvr_id);
-                    return (
-                      <TableRow key={history.id}>
-                        <TableCell className="font-medium">
-                          <div>
-                            <p>{formatDate(history.printed_at)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(history.printed_at).toLocaleTimeString('en-GB', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit'
-                              })}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p className="font-medium">
-                              {history.filter_date_from === "any" ? "From Start" : formatDate(history.filter_date_from)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              to {history.filter_date_to === "any" ? "End" : formatDate(history.filter_date_to)}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {history.nvr_id ? (
-                            <Badge variant="outline">
-                              NVR-{nvr?.nvr_number || history.nvr_id}
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">All NVRs</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="default">{history.total_checklists_printed}</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {getTimeAgoText(history.printed_at)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Printer className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-              <p className="text-muted-foreground">No print history yet</p>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </div>
