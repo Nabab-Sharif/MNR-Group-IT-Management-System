@@ -907,9 +907,9 @@ const CCTVCheckList = () => {
     // Auto-create empty form for new checklist (but don't save yet)
     const cameras = selectedNvr.cameras.map(cam => ({
       ...cam,
-      camera_position: "OK",
-      camera_recordings: "OK",
-      clear_vision: "OK",
+      camera_position: (cam.location_name && cam.location_name.trim() !== "") ? "OK" : "Nil",
+      camera_recordings: (cam.location_name && cam.location_name.trim() !== "") ? "OK" : "Nil",
+      clear_vision: (cam.location_name && cam.location_name.trim() !== "") ? "OK" : "Nil",
       remarks: "",
     }));
     
@@ -1016,7 +1016,23 @@ const CCTVCheckList = () => {
 
   const handleViewChecklist = (checklist: DailyChecklist) => {
     setSelectedChecklist(checklist);
-    setChecklistCameras(checklist.cameras);
+    
+    // Validate and fix cameras: if location_name is empty, position/recordings/vision should be "Nil"
+    const validatedCameras = checklist.cameras.map(cam => {
+      const hasLocationName = cam.location_name && cam.location_name.trim().length > 0;
+      
+      if (!hasLocationName) {
+        return {
+          ...cam,
+          camera_position: "Nil",
+          camera_recordings: "Nil",
+          clear_vision: "Nil",
+        };
+      }
+      return cam;
+    });
+    
+    setChecklistCameras(validatedCameras);
     setChecklistFormData({
       date: checklist.date,
       checked_by: checklist.checked_by,
@@ -1695,23 +1711,29 @@ const CCTVCheckList = () => {
   };
 
   const updateChecklistCamera = (index: number, field: keyof NVRCamera, value: string) => {
-    const updated = [...checklistCameras];
-    updated[index] = { ...updated[index], [field]: value };
-    
-    // If location_name has content, automatically set camera checks to "OK"
-    if (field === "location_name" && value.trim() !== "") {
-      updated[index].camera_position = "OK";
-      updated[index].camera_recordings = "OK";
-      updated[index].clear_vision = "OK";
-    }
-    // If location_name is cleared, reset checks to "Nil"
-    else if (field === "location_name" && value.trim() === "") {
-      updated[index].camera_position = "Nil";
-      updated[index].camera_recordings = "Nil";
-      updated[index].clear_vision = "Nil";
-    }
-    
-    setChecklistCameras(updated);
+    setChecklistCameras((prevCameras) => {
+      const updated = [...prevCameras];
+      updated[index] = { ...updated[index], [field]: value };
+      
+      // If location_name is being changed, auto-update position/recordings/vision
+      if (field === "location_name") {
+        const hasLocationName = value && value.trim().length > 0;
+        
+        if (hasLocationName) {
+          // If location has a name, set all to "OK"
+          updated[index].camera_position = "OK";
+          updated[index].camera_recordings = "OK";
+          updated[index].clear_vision = "OK";
+        } else {
+          // If location is empty/nil, set all to "Nil"
+          updated[index].camera_position = "Nil";
+          updated[index].camera_recordings = "Nil";
+          updated[index].clear_vision = "Nil";
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const getPreviousRemarks = (cameraId: string) => {
