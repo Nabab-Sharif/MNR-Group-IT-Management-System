@@ -23,6 +23,8 @@ import PrintHistory from "./pages/PrintHistory";
 import DailyChecklistsView from "./pages/DailyChecklistsView";
 import SwitchPortMapping from "./pages/SwitchPortMapping";
 import Settings from "./pages/Settings";
+import StickerPrinter from "./pages/StickerPrinter";
+import StickerPrinterManagement from "./pages/StickerPrinterManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +56,8 @@ const App = () => (
               <Route path="/peripherals" element={<Peripherals />} />
               <Route path="/equipment-return" element={<EquipmentReturn />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/sticker-printer" element={<StickerPrinter />} />
+              <Route path="/sticker-printer/:buyerId" element={<StickerPrinterManagement />} />
               <Route path="/user-profiles" element={<UserProfiles />} />
               <Route path="/it-persons" element={<ITPersonManagement />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

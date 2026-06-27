@@ -8,6 +8,7 @@ import {
   X,
   Package,
   Printer,
+  ScanLine,
   Phone,
   Wifi,
   Network,
@@ -28,6 +29,7 @@ const Navbar = () => {
     { path: "/accessories", label: "IT Assets", icon: Monitor },
     { path: "/ip-addresses", label: "IP Address", icon: Network },
     { path: "/printers", label: "Printers", icon: Printer },
+    { path: "/sticker-printer", label: "Sticker Printer", icon: ScanLine },
     { path: "/ip-phones", label: "IP Phones", icon: Phone },
     { path: "/wifi-list", label: "WiFi List", icon: Wifi },
     { path: "/cctv-checklist", label: "CCTV Check List", icon: ClipboardCheck },
@@ -60,7 +62,7 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || (item.path === "/sticker-printer" && location.pathname.startsWith("/sticker-printer"));
               
               return (
                 <Link
@@ -103,7 +105,7 @@ const Navbar = () => {
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || (item.path === "/sticker-printer" && location.pathname.startsWith("/sticker-printer"));
               
               return (
                 <Link
