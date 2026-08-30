@@ -110,24 +110,11 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+
   build: {
     cssCodeSplit: true,
     chunkSizeWarningLimit: 1500,
-    rollupOptions: {
-      output: {
-        manualChunks(id: string) {
-          if (!id.includes("node_modules")) return;
-          // React and all React-dependent ecosystem packages
-          if (id.includes("react") || id.includes("@radix-ui") || id.includes("react-router") ||
-            id.includes("react-hook-form") || id.includes("embla-carousel") ||
-            id.includes("react-dom") || id.includes("react-redux") || id.includes("react-day-picker")) {
-            return "vendor-react";
-          }
-          if (id.includes("@supabase")) return "vendor-supabase";
-          if (id.includes("pdf") || id.includes("tesseract") || id.includes("zxing") || id.includes("xlsx")) return "vendor-heavy";
-          return "vendor";
-        },
-      },
-    },
   },
+
+
 }));
