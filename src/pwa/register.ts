@@ -29,7 +29,14 @@ async function unregisterMatching() {
         .filter((r) => (r.active?.scriptURL || "").endsWith(SW_URL))
         .map((r) => r.unregister())
     );
-  } catch {}
+  } catch { }
+}
+
+async function clearStaleCaches() {
+  try {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
+  } catch { }
 }
 
 export function registerPWA() {
@@ -38,7 +45,23 @@ export function registerPWA() {
     void unregisterMatching();
     return;
   }
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register(SW_URL, { scope: "/" }).catch(() => {});
+  window.addEventListener("load", async () => {
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const reg of regs) {
+        const scriptUrl = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || "";
+        if (scriptUrl && !scriptUrl.endsWith(SW_URL)) {
+          await reg.unregister();
+          continue;
+        }
+        if ("update" in reg) {
+          await reg.update();
+        }
+      }
+      await clearStaleCaches();
+      await navigator.serviceWorker.register(SW_URL, { scope: "/" });
+    } catch {
+      // Ignore service worker registration failures; the app should still render without the offline cache.
+    }
   });
 }
