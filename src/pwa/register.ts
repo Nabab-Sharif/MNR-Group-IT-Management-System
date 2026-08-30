@@ -12,10 +12,12 @@ function shouldSkip(): boolean {
     return true;
   }
   const h = window.location.hostname;
+  if (h === "localhost" || h === "127.0.0.1" || h.endsWith(".localhost") || h.startsWith("127.")) return true;
   if (h.startsWith("id-preview--") || h.startsWith("preview--")) return true;
   if (h === "lovableproject.com" || h.endsWith(".lovableproject.com")) return true;
   if (h === "lovableproject-dev.com" || h.endsWith(".lovableproject-dev.com")) return true;
   if (h === "beta.lovable.dev" || h.endsWith(".beta.lovable.dev")) return true;
+  if (h === "netlify.app" || h.endsWith(".netlify.app") || h === "netlify.com" || h.endsWith(".netlify.com")) return true;
   if (new URLSearchParams(window.location.search).get("sw") === "off") return true;
   return false;
 }

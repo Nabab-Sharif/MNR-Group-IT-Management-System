@@ -2,7 +2,6 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import './styles/print.css'
-import { registerPWA } from './pwa/register'
 
 // Apply saved theme + dark mode before render so it persists on refresh
 try {
@@ -19,10 +18,12 @@ try {
       }
     }
   }
-} catch {}
+} catch { }
 
 createRoot(document.getElementById("root")!).render(<App />);
-registerPWA();
+
+// PWA registration is intentionally disabled to avoid stale service workers
+// breaking the app after local preview or deploy refreshes.
 
 // Fade out the initial splash once React has mounted
 requestAnimationFrame(() => {
