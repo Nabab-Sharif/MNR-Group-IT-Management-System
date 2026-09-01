@@ -18,6 +18,7 @@ interface SearchFilterProps {
     placeholder?: string;
   }[];
   className?: string;
+  autoFocus?: boolean;
 }
 
 const SearchFilter = ({
@@ -26,16 +27,18 @@ const SearchFilter = ({
   searchPlaceholder = "Search...",
   filters = [],
   className = "",
+  autoFocus = false,
 }: SearchFilterProps) => {
   return (
-    <div className={`flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 ${className}`}>
-      <div className="w-full sm:w-80 relative">
+    <div className={`flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 w-full ${className}`}>
+      <div className="relative w-full sm:min-w-[20rem] sm:flex-1 sm:max-w-[52rem]">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
+          autoFocus={autoFocus}
           placeholder={searchPlaceholder}
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 pr-10 border-primary/20 focus:border-primary/50 transition-all"
+          className="pl-10 pr-10 border-primary/20 focus:border-primary/50 transition-all w-full"
         />
         {searchTerm && (
           <button

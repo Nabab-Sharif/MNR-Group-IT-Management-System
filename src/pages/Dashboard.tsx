@@ -668,6 +668,7 @@ const Dashboard = () => {
             <SearchFilter
               searchTerm={globalSearchTerm}
               onSearchChange={setGlobalSearchTerm}
+              autoFocus
               searchPlaceholder="Search PC No, DP/LP No, department, user..."
             />
           </div>
