@@ -925,11 +925,11 @@ const Dashboard = () => {
             {filteredDepartments.map((department, index) => (
               <Card
                 key={department.id}
-                className="cursor-pointer relative overflow-hidden border border-primary/50 hover:border-primary bg-gradient-to-br from-primary/8 via-background to-primary/5 shadow-lg hover:shadow-2xl transition-all duration-500 group"
+                className={`cursor-pointer relative overflow-hidden border border-primary/50 hover:border-primary bg-gradient-to-br from-primary/8 via-background to-primary/5 shadow-lg hover:shadow-2xl transition-all duration-500 group dashboard-card-entry ${index % 2 === 0 ? 'dashboard-card-entry-left' : 'dashboard-card-entry-right'}`}
                 style={{
                   transform: 'perspective(1000px) rotateY(-2deg) rotateX(2deg)',
                   transformStyle: 'preserve-3d',
-                  animationDelay: `${index * 0.1}s`
+                  animationDelay: `${index * 0.12}s`
                 }}
                 onClick={() => handleDepartmentClick({
                   ...department,

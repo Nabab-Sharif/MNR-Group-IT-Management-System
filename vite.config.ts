@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
@@ -13,7 +12,6 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' &&
-    componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: null,
@@ -22,7 +20,7 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: 'MNR IT Support System',
         short_name: 'MNR IT Support',
-        description: 'Professional IT Management System for MNR Group',
+        description: 'Professional IT Support System for MNR Group',
         theme_color: '#0ea5e9',
         background_color: '#ffffff',
         display: 'fullscreen',
