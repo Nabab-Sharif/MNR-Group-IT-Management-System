@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
+import { registerPWA } from './pwa/register'
 import './index.css'
 import './styles/print.css'
 
@@ -21,9 +22,7 @@ try {
 } catch { }
 
 createRoot(document.getElementById("root")!).render(<App />);
-
-// PWA registration is intentionally disabled to avoid stale service workers
-// breaking the app after local preview or deploy refreshes.
+registerPWA();
 
 // Fade out the initial splash once React has mounted
 requestAnimationFrame(() => {

@@ -1,2 +1,0 @@
-CREATE POLICY "users delete own activity" ON public.activity_log FOR DELETE USING (auth.uid() = user_id);
-CREATE POLICY "users read own activity" ON public.activity_log FOR SELECT USING (auth.uid() = user_id);

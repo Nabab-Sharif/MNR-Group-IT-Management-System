@@ -1,1 +1,0 @@
-REVOKE EXECUTE ON FUNCTION public.has_route_permission(uuid, text, text) FROM anon, PUBLIC;

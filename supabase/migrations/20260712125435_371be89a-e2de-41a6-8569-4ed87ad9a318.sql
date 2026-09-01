@@ -1,1 +1,0 @@
-ALTER TABLE public.printers ADD COLUMN IF NOT EXISTS drive_link text;

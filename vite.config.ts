@@ -11,20 +11,19 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: null,
       devOptions: { enabled: false },
-      includeAssets: ['favicon.ico', 'robots.txt', 'pictures/**/*.png'],
+      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512.png', 'pictures/**/*.png'],
       manifest: {
         name: 'MNR IT Support System',
         short_name: 'MNR IT Support',
         description: 'Professional IT Support System for MNR Group',
         theme_color: '#0ea5e9',
         background_color: '#ffffff',
-        display: 'fullscreen',
-        display_override: ['fullscreen', 'window-controls-overlay', 'standalone'],
+        display: 'standalone',
+        display_override: ['standalone', 'window-controls-overlay', 'fullscreen'],
         orientation: 'any',
         scope: '/',
         start_url: '/',
@@ -104,7 +103,7 @@ export default defineConfig(({ mode }) => ({
         ]
       }
     })
-  ].filter(Boolean),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

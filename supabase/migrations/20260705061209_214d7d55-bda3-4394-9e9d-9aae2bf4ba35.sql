@@ -1,1 +1,0 @@
-ALTER TABLE public.access_users ADD COLUMN IF NOT EXISTS route_permissions jsonb NOT NULL DEFAULT '{}'::jsonb;

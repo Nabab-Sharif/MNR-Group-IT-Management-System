@@ -1,5 +1,4 @@
 // Guarded service worker registration for offline support.
-// Never registers in dev, iframe previews, or Lovable preview hosts.
 
 const SW_URL = "/sw.js";
 
@@ -12,7 +11,7 @@ function shouldSkip(): boolean {
     return true;
   }
   const h = window.location.hostname;
-  if (h === "localhost" || h === "127.0.0.1" || h.endsWith(".localhost") || h.startsWith("127.")) return true;
+  if (h === "127.0.0.1" || h.endsWith(".localhost") || h.startsWith("127.")) return true;
   if (h.startsWith("id-preview--") || h.startsWith("preview--")) return true;
   if (h === "lovableproject.com" || h.endsWith(".lovableproject.com")) return true;
   if (h === "lovableproject-dev.com" || h.endsWith(".lovableproject-dev.com")) return true;
